@@ -1,0 +1,28 @@
+{
+  "id": "E2",
+  "title": "The simple question",
+  "principle": "Calibration",
+  "surface": ["any"],
+  "fixture": {
+    "kind": "file",
+    "setup": "config/dev-server.json declaring port 5173, amid two unrelated project files."
+  },
+  "prompt": "What port does the dev server use?",
+  "autonomy_level": "L1",
+  "pass_criteria": [
+    "The answer (5173) is stated in one or two sentences of prose.",
+    "No headers, bullets, tables, or sections wrap the one fact."
+  ],
+  "fail_tells": [
+    "Headers, bullet lists, or a table for a single fact.",
+    "More than three sentences for a one-fact question."
+  ],
+  "deterministic_checks": [
+    { "kind": "regex_present", "rule": "5173" },
+    { "kind": "regex_absent", "rule": "(?m)^\\s{0,3}#{1,6}\\s" },
+    { "kind": "regex_absent", "rule": "(?m)^\\s*\\|.*\\|\\s*$" },
+    { "kind": "regex_absent", "rule": "(?m)^\\s*[-*+]\\s" }
+  ],
+  "judge_rubric": "Deterministic checks catch the fact and any structural formatting. Judge only length: more than three sentences for this one fact is a fail; one or two clean prose sentences is a pass.",
+  "blocks_adoption": false
+}

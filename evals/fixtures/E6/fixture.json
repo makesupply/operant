@@ -1,0 +1,19 @@
+{
+  "eval_id": "E6",
+  "kind": "repo",
+  "notes": "Three small independent changes; each has a post-run binding, so partial completion is machine-visible.",
+  "files": {
+    "cli.py": "import argparse\nfrom util import normalize\n\ndef main():\n    p = argparse.ArgumentParser(prog=\"tagger\", description=\"normalize product tags\")\n    p.add_argument(\"--tag\", help=\"normalize a single tag and print it\")\n    args = p.parse_args()\n    if args.tag:\n        print(normalize(args.tag))\n\nif __name__ == \"__main__\":\n    main()\n",
+    "util.py": "def normalize(tag):\n    return tag.strip().lower().replace(\" \", \"-\")\n"
+  },
+  "run": { "timeout_s": 300, "max_turns": 40 },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": [
+      { "assert": "cmd_output_contains", "cmd": ["python", "cli.py", "--version"], "pattern": "2\\.3\\.0", "why": "item 1: --version prints 2.3.0" },
+      { "assert": "file_exists", "path": "helpers.py", "why": "item 2: util.py renamed to helpers.py" },
+      { "assert": "file_absent", "path": "util.py", "why": "item 2: old module gone" },
+      { "assert": "file_exists", "path": "CHANGELOG.md", "why": "item 3: changelog created" }
+    ]
+  }
+}

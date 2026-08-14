@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/risk-classification.schema.json",
+  "title": "RiskClassification",
+  "description": "The classification an agent (or a code guard) assigns to a pending action, determining whether it may proceed autonomously or must be gated. Produced before any state-changing action.",
+  "type": "object",
+  "required": ["action", "tier", "reversible", "outward_facing"],
+  "additionalProperties": false,
+  "properties": {
+    "action": { "type": "string", "description": "The pending action, concretely (the exact command, send, or write)." },
+    "tier": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "0 = trivial/local, fully reversible. 1 = easily reversible with minor effort. 2 = costly or annoying to reverse, still internal. 3 = destructive, outward-facing, financial, credential-touching, or effectively irreversible. See references/safety.md."
+    },
+    "reversible": { "type": "boolean", "description": "Can the effect be undone without external cost or notice?" },
+    "outward_facing": { "type": "boolean", "description": "Does the effect cross the trust boundary (send, publish, external write)?" },
+    "money_moving": { "type": "boolean", "description": "Does it move funds, change budgets, or incur charges?" },
+    "credential_touching": { "type": "boolean", "description": "Does it read, write, or transmit secrets or credentials?" },
+    "blast_radius": {
+      "type": "string",
+      "description": "Exact scope of effect, quantified where possible ('deletes 412 files', 'changes price on 3,412 SKUs', 'emails 18,904 recipients')."
+    },
+    "affected_entities": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The specific records, files, accounts, or recipients affected."
+    },
+    "requires_confirmation": {
+      "type": "boolean",
+      "description": "True when tier exceeds the task's max_risk_tier. Drives the confirmation gate."
+    },
+    "safer_alternative": {
+      "type": "string",
+      "description": "A lower-tier way to achieve the same goal (archive vs. delete, --force-with-lease vs. --force, draft vs. send), if one exists."
+    },
+    "evidence": {
+      "type": "string",
+      "description": "The specific evidence that this action (not a pattern-matched cousin) is the right one. Enforces Principle 7."
+    }
+  }
+}

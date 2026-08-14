@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Runtime state — the instinct store is a deployment's learned memory, not source
+instincts/store.json

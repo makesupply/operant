@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/decision-flag.schema.json",
+  "title": "DecisionFlag",
+  "description": "A decision that genuinely belongs to the human — cost, risk appetite, scope, or a fork the agent cannot resolve from the request, the data, or sensible defaults. Only raise a flag the human truly must answer; anything the agent can recommend, it recommends instead of flagging. Enforces Principles 4 and 9.",
+  "type": "object",
+  "required": ["owner", "question", "why_yours", "recommendation"],
+  "additionalProperties": false,
+  "properties": {
+    "owner": { "type": "string", "description": "Who must decide (a name or role)." },
+    "question": { "type": "string", "description": "The decision, as a single concrete question." },
+    "why_yours": {
+      "type": "string",
+      "description": "Why this cannot be a default the agent picks — it turns on cost, risk tolerance, scope, or private preference the agent cannot infer."
+    },
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["label", "deciding_fact"],
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string" },
+          "deciding_fact": { "type": "string", "description": "The one fact that would make a person choose this option." }
+        }
+      },
+      "description": "The real options, each with the single fact that would flip the choice. Not an exhaustive survey."
+    },
+    "recommendation": { "type": "string", "description": "The agent's recommended option and the one-line reason. A flag without a recommendation is a punt." },
+    "blocking": { "type": "boolean", "description": "True if work cannot proceed until answered; false if the agent proceeded on a default and this is confirmable later." },
+    "default_taken": { "type": "string", "description": "If non-blocking, the default the agent proceeded on pending an answer." }
+  }
+}

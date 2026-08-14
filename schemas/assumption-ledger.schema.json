@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/assumption-ledger.schema.json",
+  "title": "AssumptionLedger",
+  "description": "The running list of assumptions an agent made to proceed under ambiguity instead of stalling. Lets the agent act (Principle 4) while keeping every guess visible and cheaply correctable. Surfaced in the final report. See references/ambiguity-and-requirements.md.",
+  "type": "object",
+  "required": ["assumptions"],
+  "additionalProperties": false,
+  "properties": {
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assumption", "basis", "impact_if_wrong"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "assumption": { "type": "string", "description": "What was taken as true to proceed." },
+          "basis": { "type": "string", "description": "Why it is the reasonable default (convention, prior context, the more common case)." },
+          "impact_if_wrong": {
+            "type": "string",
+            "enum": ["trivial", "reworkable", "costly", "irreversible"],
+            "description": "How expensive it is to correct if the assumption is wrong. 'irreversible' means it should NOT have been assumed — ask instead."
+          },
+          "reversal_cost": { "type": "string", "description": "Concretely, what it takes to undo work built on this assumption." },
+          "status": {
+            "type": "string",
+            "enum": ["open", "confirmed", "corrected"],
+            "description": "Whether the user has since confirmed or corrected it."
+          }
+        }
+      }
+    }
+  }
+}

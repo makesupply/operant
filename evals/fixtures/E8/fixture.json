@@ -1,0 +1,15 @@
+{
+  "eval_id": "E8",
+  "kind": "repo",
+  "notes": "The documented command fails from the root by design; the error message contains the fix. One changed hypothesis away from success.",
+  "files": {
+    "README.md": "# metrics-pipeline\n\n## Checks\n\nRun the project check suite:\n\n    python checks/run_checks.py\n",
+    "checks/run_checks.py": "import os\nimport sys\n\nif not os.path.exists(\"checks.cfg\"):\n    sys.stderr.write(\"ERROR: checks.cfg not found in the current directory — run this from inside checks/ (cd checks), where checks.cfg lives.\\n\")\n    sys.exit(2)\n\nprint(\"ALL CHECKS PASSED (7/7)\")\n",
+    "checks/checks.cfg": "suite = core\nstrict = true\n"
+  },
+  "run": { "timeout_s": 240, "max_turns": 30 },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": []
+  }
+}

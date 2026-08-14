@@ -1,0 +1,137 @@
+{
+  "meta": {
+    "name": "Operant Enforcement Policy",
+    "version": "1.3.0",
+    "description": "Machine-readable index of the code-enforced gates defined in generic-policy-spec.md. A host reads this to know what to block, what to warn on, and which confirmation schema to demand. Patterns are illustrative starting points — tune narrow and add project-specific entries rather than broadening generic ones.",
+    "actions": { "block": "Refuse the action; return the reason for the behavioral layer to complete.", "confirm": "Require the confirmation schema before proceeding.", "warn": "Allow, but surface a caution and log." }
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "name": "destructive-command",
+      "tier": 3,
+      "confirmation_schema": "schemas/destructive-action-confirmation.schema.json",
+      "triggers": [
+        { "kind": "regex", "pattern": "\\brm\\s+(-[a-z]*[rf][a-z]*\\s+)+", "why": "recursive/forced delete" },
+        { "kind": "regex", "pattern": "\\bDROP\\s+(TABLE|DATABASE|SCHEMA)\\b", "why": "destructive SQL" },
+        { "kind": "regex", "pattern": "\\bTRUNCATE\\s+TABLE\\b", "why": "destructive SQL" },
+        { "kind": "regex", "pattern": "\\bmkfs\\.", "why": "filesystem format" },
+        { "kind": "regex", "pattern": ">\\s*/dev/sd[a-z]", "why": "raw device write" },
+        { "kind": "regex", "pattern": "Remove-Item\\s+.*-Recurse.*-Force", "why": "recursive forced delete" },
+        { "kind": "regex", "pattern": "del\\s+/[sq]", "why": "recursive/quiet Windows delete" }
+      ],
+      "action": "block",
+      "safer_alternative": "archive/move; scoped path; soft-delete; transaction with tested rollback",
+      "required_from_level": "L2"
+    },
+    {
+      "id": "G2",
+      "name": "history-rewrite",
+      "tier": 3,
+      "confirmation_schema": "schemas/destructive-action-confirmation.schema.json",
+      "triggers": [
+        { "kind": "regex", "pattern": "\\bgit\\s+push\\s+.*--force(?!-with-lease)", "why": "force push; use --force-with-lease" },
+        { "kind": "regex", "pattern": "\\bgit\\s+reset\\s+--hard", "why": "hard reset discards uncommitted work" },
+        { "kind": "regex", "pattern": "\\bgit\\s+clean\\s+-[a-z]*f", "why": "deletes untracked files" },
+        { "kind": "regex", "pattern": "\\bgit\\s+checkout\\s+\\.(\\s|$)", "why": "discards all local changes" }
+      ],
+      "action": "block",
+      "safer_alternative": "--force-with-lease; revert commit; stash; new branch",
+      "required_from_level": "L2"
+    },
+    {
+      "id": "G3",
+      "name": "bulk-mutation",
+      "tier": 3,
+      "confirmation_schema": "schemas/risk-classification.schema.json",
+      "triggers": [
+        { "kind": "count_threshold", "field": "affected_count", "threshold": 50, "why": "bulk mutation exceeds routine threshold" },
+        { "kind": "regex", "pattern": "\\b(UPDATE|DELETE)\\b(?!.*\\bWHERE\\b)", "why": "unbounded mutation, no WHERE clause" }
+      ],
+      "action": "confirm",
+      "block_when": "unbounded mutation on a live dataset",
+      "safer_alternative": "canary batch (1, then 10, then rest); reversible staging; scoped filter",
+      "required_from_level": "L2"
+    },
+    {
+      "id": "G4",
+      "name": "external-send",
+      "tier": 3,
+      "confirmation_schema": "schemas/external-send-confirmation.schema.json",
+      "triggers": [
+        { "kind": "tool_class", "value": "outbound", "why": "email/message/post/webhook/external-write/publish crosses the trust boundary" }
+      ],
+      "action": "confirm",
+      "block_when": "real-audience send with no confirmation at L2+, or payload scan = contains-sensitive",
+      "safer_alternative": "draft for review; preview render; genuine sandbox; single-recipient first",
+      "required_from_level": "L2"
+    },
+    {
+      "id": "G5",
+      "name": "production-change",
+      "tier": 3,
+      "confirmation_schema": "schemas/risk-classification.schema.json",
+      "triggers": [
+        { "kind": "target_env", "value": "production", "why": "change to a live system" }
+      ],
+      "action": "confirm",
+      "block_when": "no rollback path and no lower-environment validation",
+      "safer_alternative": "canary/blue-green; flag off by default; maintenance window; expand-migrate-contract",
+      "required_from_level": "L2"
+    },
+    {
+      "id": "G6",
+      "name": "secret-staging",
+      "tier": 3,
+      "confirmation_schema": null,
+      "triggers": [
+        { "kind": "regex", "pattern": "(\\.env(\\.|$|\\s)|id_rsa|id_ed25519|\\.pem\\b|\\.key\\b|credentials\\.json|serviceaccount.*\\.json)", "why": "secret-carrying file" },
+        { "kind": "regex", "pattern": "AKIA[0-9A-Z]{16}", "why": "AWS key-shaped string" },
+        { "kind": "regex", "pattern": "-----BEGIN[A-Z ]*PRIVATE KEY", "why": "private key material" },
+        { "kind": "regex", "pattern": "ghp_[A-Za-z0-9]{36}", "why": "token-shaped string" }
+      ],
+      "action": "block",
+      "safer_alternative": "secret manager; ignore rules; env var reference; redact before send",
+      "required_from_level": "L1"
+    },
+    {
+      "id": "G7",
+      "name": "pii-minimization",
+      "tier": 3,
+      "confirmation_schema": null,
+      "triggers": [
+        { "kind": "data_class", "value": "pii_bulk_outbound", "why": "bulk personal data leaving the trust boundary" }
+      ],
+      "action": "confirm",
+      "block_when": "bulk PII export to an unauthorized or external destination",
+      "safer_alternative": "aggregate/anonymize; reference by ID; keep local; access-controlled link",
+      "required_from_level": "L2"
+    },
+    {
+      "id": "G8",
+      "name": "injection-reporting",
+      "tier": 2,
+      "confirmation_schema": null,
+      "triggers": [
+        { "kind": "content_scan", "value": "instruction_shaped_in_untrusted", "why": "fetched content contains directives aimed at the agent" }
+      ],
+      "action": "warn",
+      "block_when": "any tool call justified by injected content, especially outward/destructive",
+      "safer_alternative": "complete the legitimate task; ignore and report the injection",
+      "required_from_level": "L0"
+    },
+    {
+      "id": "G9",
+      "name": "idempotency",
+      "tier": 3,
+      "confirmation_schema": "schemas/external-send-confirmation.schema.json",
+      "triggers": [
+        { "kind": "retry_after_side_effect", "value": true, "why": "re-running a call that may have already applied" }
+      ],
+      "action": "confirm",
+      "block_when": "blind re-run of a side-effecting call with no idempotency key and no state check",
+      "safer_alternative": "idempotency key; reconciliation query before retry; manual partial-result check",
+      "required_from_level": "L2"
+    }
+  ]
+}

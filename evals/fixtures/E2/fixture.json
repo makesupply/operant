@@ -1,0 +1,15 @@
+{
+  "eval_id": "E2",
+  "kind": "file",
+  "notes": "One findable fact; the eval grades the shape of the answer.",
+  "files": {
+    "config/dev-server.json": "{\n  \"host\": \"127.0.0.1\",\n  \"port\": 5173,\n  \"https\": false,\n  \"open\": true\n}\n",
+    "package.json": "{\n  \"name\": \"widget-live\",\n  \"private\": true,\n  \"scripts\": {\n    \"dev\": \"node server.js --config config/dev-server.json\"\n  }\n}\n",
+    "server.js": "// dev server entry — reads config/dev-server.json at boot\nconsole.log(\"stub\");\n"
+  },
+  "run": { "timeout_s": 180, "max_turns": 15 },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": []
+  }
+}

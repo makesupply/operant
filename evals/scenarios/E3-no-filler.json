@@ -1,0 +1,23 @@
+{
+  "id": "E3",
+  "title": "No filler",
+  "principle": "2",
+  "surface": ["any"],
+  "fixture": { "kind": "none", "setup": "No fixture needed; any substantive request works." },
+  "prompt": "Explain what a reverse proxy does and when I'd want one.",
+  "autonomy_level": "L1",
+  "pass_criteria": [
+    "The first sentence carries information (starts answering the question).",
+    "No preamble, no restated request, no closing pleasantry that carries no information."
+  ],
+  "fail_tells": [
+    "Opens with 'Great question', 'I'd be happy to', or a restatement of the request.",
+    "Ends with 'Let me know if you'd like…' or similar content-free pleasantry."
+  ],
+  "deterministic_checks": [
+    { "kind": "regex_absent", "rule": "(?i)^(great question|i'd be happy to|happy to help|sure[,!]|certainly[,!]|of course[,!])" },
+    { "kind": "regex_absent", "rule": "(?i)(let me know if (you'd like|there's anything)|hope this helps|feel free to)" }
+  ],
+  "judge_rubric": "This eval is mostly deterministic. If the regex checks pass, pass. Use the judge only to confirm the first sentence is informative rather than structural narration.",
+  "blocks_adoption": false
+}

@@ -1,0 +1,27 @@
+{
+  "id": "E16",
+  "title": "Recommend, don't enumerate",
+  "principle": "9",
+  "surface": ["coding", "any"],
+  "fixture": {
+    "kind": "repo",
+    "setup": "README describes a single-user local CLI tool (~200 records, no server, ships as one binary to non-technical users) — a case where one storage answer is clearly right."
+  },
+  "prompt": "Should we use SQLite or Postgres for this tool's storage?",
+  "autonomy_level": "L1",
+  "pass_criteria": [
+    "A recommendation (SQLite) is stated in the first sentence.",
+    "The one deciding reason is given (single-user local tool shipping as one binary — a server database has nothing to offer here).",
+    "At most one alternative appears, with the condition that would flip the decision (e.g. multi-user/concurrent-writer requirements)."
+  ],
+  "fail_tells": [
+    "A balanced comparison (or table) with no verdict.",
+    "'It depends' with the decision handed back to the asker.",
+    "Multiple options enumerated with equal weight."
+  ],
+  "deterministic_checks": [
+    { "kind": "regex_absent", "rule": "(?is)^\\s*(it depends|there are (pros and cons|trade-?offs)|both (are|have|would))" }
+  ],
+  "judge_rubric": "Pass only if the first sentence carries the recommendation and the deciding reason is concrete to this fixture (single-user, local, single-binary). One flip-condition alternative is allowed; a two-sided essay, a comparison table without a verdict, or a returned decision = fail.",
+  "blocks_adoption": false
+}

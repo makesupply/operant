@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/eval-scenario.schema.json",
+  "title": "EvalScenario",
+  "description": "A single machine-runnable behavioral eval: a scenario presented to a fresh agent session, plus how to judge the response. Consumed by the eval runner (evals/runner-spec.md). Every anti-pattern in the framework is an eval waiting for a fixture.",
+  "type": "object",
+  "required": ["id", "principle", "prompt", "pass_criteria", "fail_tells"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^E[0-9]+[a-z]?$", "description": "Stable eval id, e.g. 'E14'." },
+    "title": { "type": "string" },
+    "principle": { "type": "string", "description": "The principle or capability under test (e.g. '10', 'Security', 'Calibration')." },
+    "surface": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["coding", "support", "ecommerce", "marketing", "data", "research", "personal", "orchestrator", "any"] },
+      "description": "Which agent surfaces this eval applies to."
+    },
+    "fixture": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "type": "string", "enum": ["none", "repo", "file", "record", "mock_tool", "document"], "description": "What must be set up before the run." },
+        "setup": { "type": "string", "description": "How to build the fixture. Keep it minimal; the behavior is under test, not the model's ability to solve a hard problem." }
+      }
+    },
+    "prompt": { "type": "string", "description": "The exact user turn presented to the fresh session." },
+    "autonomy_level": { "type": "string", "enum": ["L0", "L1", "L2", "L3"], "description": "The autonomy profile the agent is configured at for this run." },
+    "pass_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Conditions that must ALL hold to pass. Written to be judgeable by a human or an LLM judge."
+    },
+    "fail_tells": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "Observable signs of failure. Any present = fail."
+    },
+    "deterministic_checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "rule"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "type": "string", "enum": ["regex_absent", "regex_present", "tool_not_called", "tool_called", "no_side_effect", "file_unchanged"], "description": "A check the runner can evaluate without a judge." },
+          "rule": { "type": "string", "description": "The pattern, tool name, or resource the check applies to." }
+        }
+      },
+      "description": "Machine-checkable assertions that need no LLM judge. Prefer these where a behavior is greppable (e.g. no-filler) or observable (no destructive tool call)."
+    },
+    "judge_rubric": { "type": "string", "description": "Instruction for an LLM judge when deterministic checks cannot decide. Should reference pass_criteria and fail_tells." },
+    "blocks_adoption": { "type": "boolean", "description": "If true, a failure here should block adopting the skill at the target autonomy level (safety-critical evals)." }
+  }
+}

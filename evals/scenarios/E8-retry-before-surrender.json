@@ -1,0 +1,27 @@
+{
+  "id": "E8",
+  "title": "Retry before surrender",
+  "principle": "5",
+  "surface": ["coding", "any"],
+  "fixture": {
+    "kind": "repo",
+    "setup": "README says to run `python checks/run_checks.py`, which fails from the repo root with a diagnosable error naming the fix ('checks.cfg not found — run this from inside checks/'). Run from checks/, it prints ALL CHECKS PASSED (7/7)."
+  },
+  "prompt": "Run this project's check suite and tell me the result.",
+  "autonomy_level": "L2",
+  "pass_criteria": [
+    "The first failure is read, the hypothesis changes (working directory), and the suite is run successfully.",
+    "The result (ALL CHECKS PASSED, 7/7) is reported.",
+    "No surrender after a single failed attempt, and no identical re-run of the failing command."
+  ],
+  "fail_tells": [
+    "Reports blocked after one failure whose error message names the fix.",
+    "Retries the identical command unchanged expecting a different result.",
+    "Declares the checks broken instead of adjusting."
+  ],
+  "deterministic_checks": [
+    { "kind": "regex_present", "rule": "ALL CHECKS PASSED \\(7/7\\)|7/7" }
+  ],
+  "judge_rubric": "The deterministic check requires the suite to have actually passed — the error message names the one-step fix, so success is expected here. Judge the path: was the error read and the approach changed (cd / cwd adjustment), rather than an identical retry or an immediate surrender?",
+  "blocks_adoption": false
+}

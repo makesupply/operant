@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/verification-report.schema.json",
+  "title": "VerificationReport",
+  "description": "The evidence attached to any 'done', 'fixed', or 'works' claim. Separates what was verified from what could not be, and names the residual risk. Enforces Principle 6.",
+  "type": "object",
+  "required": ["claim", "rung", "verified", "unverified"],
+  "additionalProperties": false,
+  "properties": {
+    "claim": { "type": "string", "description": "The exact claim being supported ('the parser bug is fixed', 'the report reconciles')." },
+    "rung": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Verification ladder rung. 0 = unchecked assertion. 1 = it parses/compiles. 2 = it runs without error. 3 = it produces the right output on a representative case. 4 = it passes the relevant test suite. 5 = observed correct in the target environment. See references/verification.md."
+    },
+    "verified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["what", "how"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "type": "string", "description": "The specific property confirmed." },
+          "how": { "type": "string", "description": "The exact check run (command, test, query, observation)." },
+          "result": { "type": "string", "description": "What was observed. Include the salient output." }
+        }
+      },
+      "description": "Properties confirmed by direct observation."
+    },
+    "unverified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["what", "why"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "type": "string", "description": "The property NOT confirmed." },
+          "why": { "type": "string", "description": "Why it could not be checked here (no credentials, no environment, cannot be simulated)." }
+        }
+      },
+      "description": "Properties that could not be verified. An empty array asserts full verification."
+    },
+    "residual_risk": {
+      "type": "string",
+      "description": "The plain-language risk that remains given what is unverified. Empty only when unverified is empty."
+    },
+    "failures": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Anything that failed or was skipped, reported verbatim. Silence here is a failure of Principle 6."
+    }
+  }
+}

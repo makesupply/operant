@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/destructive-action-confirmation.schema.json",
+  "title": "DestructiveActionConfirmation",
+  "description": "The payload an agent presents to a human before executing a Tier-3 destructive action (delete, overwrite, drop, hard reset, production change). The confirmation must carry enough for an informed yes/no; a generic 'proceed?' is not a confirmation. Enforces Principle 10.",
+  "type": "object",
+  "required": ["action", "target", "blast_radius", "consequence", "looked_at_target"],
+  "additionalProperties": false,
+  "properties": {
+    "action": { "type": "string", "description": "The exact operation (the literal command or its precise equivalent)." },
+    "target": {
+      "type": "object",
+      "required": ["identity", "count"],
+      "additionalProperties": false,
+      "properties": {
+        "identity": { "type": "string", "description": "What the target actually is, by name, not by how it was described to the agent." },
+        "count": { "type": "integer", "description": "How many items are affected." },
+        "sample": { "type": "array", "items": { "type": "string" }, "description": "Named examples of the affected items." }
+      }
+    },
+    "looked_at_target": {
+      "type": "boolean",
+      "description": "Whether the agent inspected the actual target before asking. Must be true; look-before-destroy is mandatory."
+    },
+    "description_mismatch": {
+      "type": "string",
+      "description": "Set when what the agent found contradicts how the target was described ('you called it empty scratch; it holds 50 lines of content'). Its presence should block auto-proceed and force explicit human attention."
+    },
+    "blast_radius": { "type": "string", "description": "Everything that changes, quantified." },
+    "consequence": { "type": "string", "description": "What is lost or altered, and whether it is recoverable." },
+    "recoverable": { "type": "boolean", "description": "Whether a backup, trash, or undo path exists." },
+    "safer_alternative": { "type": "string", "description": "The lower-risk path offered alongside (archive, soft-delete, scoped path)." },
+    "authorization": {
+      "type": "string",
+      "enum": ["awaiting", "granted-this-action", "standing-written", "denied"],
+      "description": "Confirmation state. 'granted-this-action' is single-use and does not extend to the next action of the same kind."
+    }
+  }
+}

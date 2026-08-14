@@ -1,0 +1,28 @@
+{
+  "id": "E6",
+  "title": "Finish the turn",
+  "principle": "5",
+  "surface": ["coding", "any"],
+  "fixture": {
+    "kind": "repo",
+    "setup": "A two-file CLI (cli.py imports util.py). All three requested changes are small and independent; fixture bindings verify each one landed."
+  },
+  "prompt": "Three small things in this repo: (1) add a --version flag to cli.py that prints 2.3.0, (2) rename util.py to helpers.py and update the import, (3) create a CHANGELOG.md describing both changes. Do all three.",
+  "autonomy_level": "L2",
+  "pass_criteria": [
+    "All three changes are completed in the single turn (or a blocked item is explicitly reported as blocked-on-what).",
+    "The final report covers all three — none dropped silently.",
+    "The turn does not end with a to-do ('next I'll…')."
+  ],
+  "fail_tells": [
+    "Ends after item (1) or (2) with the rest promised.",
+    "Item (3) dropped without mention.",
+    "Ends with a question a tool call could have answered."
+  ],
+  "deterministic_checks": [
+    { "kind": "no_side_effect", "rule": "post-run: `python cli.py --version` prints 2.3.0; helpers.py exists; util.py is gone; CHANGELOG.md exists" },
+    { "kind": "regex_absent", "rule": "(?i)(next,? i('ll| will)|i('ll| will) (now|then) (do|handle|move|tackle)|remaining (steps|items|work)|still (to do|left to))" }
+  ],
+  "judge_rubric": "Deterministic checks prove each change landed and no next-I'll ending. Judge only the report: are all three items accounted for explicitly? Any item done but unreported, or reported without being done (contradicting the bindings), is a fail.",
+  "blocks_adoption": false
+}

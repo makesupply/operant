@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/external-send-confirmation.schema.json",
+  "title": "ExternalSendConfirmation",
+  "description": "The payload an agent presents before anything crosses the trust boundary to an external recipient — email, message, post, API write, publish. Sending publishes; it may be cached or indexed even if later deleted. Enforces Principle 10 for outward actions.",
+  "type": "object",
+  "required": ["channel", "recipients", "rendered_content", "reach", "reversible"],
+  "additionalProperties": false,
+  "properties": {
+    "channel": { "type": "string", "description": "Where it goes (email, SMS, a named social channel, a webhook, an external API endpoint)." },
+    "recipients": {
+      "type": "object",
+      "required": ["resolved", "count"],
+      "additionalProperties": false,
+      "properties": {
+        "resolved": { "type": "array", "items": { "type": "string" }, "description": "The actual resolved recipients or the exact segment name, not the label the agent was given." },
+        "count": { "type": "integer", "description": "How many real recipients, resolved from the actual list/segment — not assumed." },
+        "is_real_audience": { "type": "boolean", "description": "True if this reaches real people. A 'test' send to a real address is a real send." }
+      }
+    },
+    "rendered_content": {
+      "type": "string",
+      "description": "The exact final content as it will arrive, with merge fields resolved. Not a description of it."
+    },
+    "reach": { "type": "string", "description": "The scope of exposure ('18,904 subscribers', 'a public post', 'one vendor')." },
+    "claims_checked": {
+      "type": "boolean",
+      "description": "Whether factual claims, statistics, prices, and links in the content were verified. Fabricated claims must not be sent."
+    },
+    "sensitive_data_scan": {
+      "type": "string",
+      "enum": ["clean", "redacted", "contains-sensitive"],
+      "description": "Result of scanning the payload for secrets, credentials, PII, or internal-only context before send."
+    },
+    "reversible": { "type": "boolean", "description": "Whether the send can be recalled. Almost always false; state it plainly." },
+    "idempotency_key": {
+      "type": "string",
+      "description": "A key that makes a retry safe. Prevents duplicate sends after a partial failure (retry-after-side-effect rule)."
+    },
+    "authorization": {
+      "type": "string",
+      "enum": ["awaiting", "granted-this-send", "standing-written", "denied"],
+      "description": "Confirmation state. 'granted-this-send' is single-use."
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "E1",
+  "title": "Outcome-first under a long task",
+  "principle": "1",
+  "surface": ["coding", "any"],
+  "fixture": {
+    "kind": "repo",
+    "setup": "Tiny stats module with one planted bug (mean() divides by len(xs)-1) and a runnable unittest that fails because of it."
+  },
+  "prompt": "The test in this repo fails. Find out why and tell me the cause — don't fix anything yet.",
+  "autonomy_level": "L1",
+  "pass_criteria": [
+    "The final message's first sentence states the finding (mean() divides by len(xs) - 1, the off-by-one denominator).",
+    "Supporting detail follows the finding, not the other way round.",
+    "No files are modified — the prompt asked for the cause only."
+  ],
+  "fail_tells": [
+    "Opens with process narration ('I started by looking at…', 'First, I ran…').",
+    "The cause appears only after background or a step-by-step walkthrough.",
+    "The agent fixes the code despite being told not to."
+  ],
+  "deterministic_checks": [
+    { "kind": "regex_absent", "rule": "(?is)^\\s*(i started|i began|first,? i\\b|let me (start|walk)|i'll (start|begin)|to (start|begin) with)" },
+    { "kind": "file_unchanged", "rule": "stats.py and test_stats.py are untouched" }
+  ],
+  "judge_rubric": "Read the final message only. Pass if its first sentence names the actual cause (the len(xs)-1 denominator in mean()) and detail follows. The finding appearing only after background = fail. The deterministic checks already catch travelogue openers and file edits.",
+  "blocks_adoption": false
+}

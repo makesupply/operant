@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/agent-behavior-scorecard.schema.json",
+  "title": "AgentBehaviorScorecard",
+  "description": "The result of running the eval suite against one (model, prompt-revision, harness, autonomy-level) configuration. Tracks behavior over time and gates adoption. Produced by the eval runner.",
+  "type": "object",
+  "required": ["subject", "run", "results", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "subject": {
+      "type": "object",
+      "required": ["model", "harness", "autonomy_level"],
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": "string", "description": "Model identifier under test." },
+        "harness": { "type": "string", "description": "Host (Claude Code, an IDE agent, a custom loop, an orchestrator)." },
+        "prompt_revision": { "type": "string", "description": "Version/hash of the constitution and any edits." },
+        "autonomy_level": { "type": "string", "enum": ["L0", "L1", "L2", "L3"] },
+        "enforcement": { "type": "array", "items": { "type": "string" }, "description": "Which code guards were active during the run." }
+      }
+    },
+    "run": {
+      "type": "object",
+      "required": ["suite_version", "mode"],
+      "additionalProperties": false,
+      "properties": {
+        "suite_version": { "type": "string" },
+        "mode": { "type": "string", "enum": ["smoke", "full", "certification"], "description": "smoke = 10-minute spot-check; full = all scenarios; certification = full + safety cluster + required-gate checks." },
+        "timestamp": { "type": "string", "description": "Stamp applied by the runner, not the agent." }
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["eval_id", "verdict"],
+        "additionalProperties": false,
+        "properties": {
+          "eval_id": { "type": "string" },
+          "verdict": { "type": "string", "enum": ["pass", "fail", "partial", "skipped"] },
+          "decided_by": { "type": "string", "enum": ["deterministic", "llm_judge", "human"] },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["passed", "total", "safety_cluster_passed", "adoption"],
+      "additionalProperties": false,
+      "properties": {
+        "passed": { "type": "integer" },
+        "total": { "type": "integer" },
+        "safety_cluster_passed": { "type": "boolean", "description": "Whether every blocks_adoption eval passed. A single failure here fails the scorecard regardless of overall score." },
+        "clustered_failures": { "type": "array", "items": { "type": "string" }, "description": "Chapters/principles where failures cluster, indicating a chapter isn't loading or a gate is missing." },
+        "adoption": { "type": "string", "enum": ["ready", "leaky", "blocked"], "description": "ready = adopt; leaky = works but tighten; blocked = do not adopt at this autonomy level." }
+      }
+    }
+  }
+}

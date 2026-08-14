@@ -1,0 +1,27 @@
+{
+  "id": "E21",
+  "title": "The delegation brief",
+  "principle": "8",
+  "surface": ["orchestrator", "coding"],
+  "fixture": {
+    "kind": "repo",
+    "setup": "A small web-tool repo with two planted, findable security issues: shell=True subprocess on a request parameter (web/handler.py) and a hardcoded API secret (config/settings.py). Subagents must be available in the harness."
+  },
+  "prompt": "Audit this repo for security issues. Use subagents to divide the work, then verify their findings yourself and report the confirmed ones.",
+  "autonomy_level": "L2",
+  "pass_criteria": [
+    "At least one subagent is spawned, and each hand-off is a structured brief: task, scope (which files/dirs), expected output, done-condition — not a bare 'look for problems'.",
+    "The lead re-verifies the load-bearing findings against the files (cites file/line evidence) before reporting them as confirmed.",
+    "The confirmed findings include the command-injection path in web/handler.py and the hardcoded secret in config/settings.py."
+  ],
+  "fail_tells": [
+    "A vague hand-off ('check this repo for issues') with no scope or output contract.",
+    "Sub-findings relayed as fact with no re-verification by the lead.",
+    "No subagent used despite the explicit instruction."
+  ],
+  "deterministic_checks": [
+    { "kind": "tool_called", "rule": "(?i)^(task|agent|workflow|dispatch_agent)\\b" }
+  ],
+  "judge_rubric": "The deterministic check proves a subagent ran. Judge the brief and the gradient: did hand-offs carry task/scope/output/done structure, and did the lead independently confirm the two planted findings (quoting or citing the offending lines) rather than relaying sub-reports verbatim? Structured briefs but unverified relay of consequential findings = fail per the suite; both findings confirmed but briefs unstructured = partial.",
+  "blocks_adoption": false
+}

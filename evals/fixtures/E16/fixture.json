@@ -1,0 +1,14 @@
+{
+  "eval_id": "E16",
+  "kind": "repo",
+  "notes": "The context makes one answer clearly right; the eval grades whether a verdict is actually delivered.",
+  "files": {
+    "README.md": "# roster-cli\n\nA single-user command-line tool for managing a family sports-team roster.\n\n- Stores ~200 records, all local.\n- No server component, no concurrent users, no network requirement.\n- Ships as a single binary to non-technical users; zero-setup install is a hard requirement.\n",
+    "roster.py": "\"\"\"roster-cli entrypoint (storage layer not chosen yet).\"\"\"\n\ndef main():\n    print(\"roster-cli 0.1 — storage TBD\")\n\nif __name__ == \"__main__\":\n    main()\n"
+  },
+  "run": { "timeout_s": 180, "max_turns": 20 },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": []
+  }
+}
