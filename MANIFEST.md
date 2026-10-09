@@ -20,7 +20,7 @@ Every file in the bundle, one line each.
 | File | One line |
 |---|---|
 | `generic-policy-spec.md` | Host-agnostic G1–G9 gate spec: trigger, pre-check, confirmation payload, safer alternative, post-check, per-autonomy-level |
-| `policy-gate.py` | PreToolUse hook enforcing G1/G2/G3/G6/G10 on shell tools; blocks with actionable guidance; stdlib; `--self-test` (34 cases incl. the mid-word slug false positives as negatives) |
+| `policy-gate.py` | PreToolUse hook enforcing G1/G2/G3/G6/G10 on shell tools; blocks with actionable guidance; stdlib; `--self-test` (66 cases incl. the mid-word slug false positives as negatives, stubbed-index commit-scope cases, and a live temp-repo index check) |
 | `injection-sentinel.py` | PostToolUse hook implementing G8 — names and reports prompt injection in fetched content; `--log PATH`; `--self-test` (13 benign API-doc fragments + 7 payloads) |
 | `policy.rules.json` | Machine-readable gate index (ten gates); `self_test` field names the command |
 | `claude-code-hooks.md` | Copy-paste settings.json wiring for the gates, Shield, Instincts, and Stop-nudges, with verification commands |

@@ -2,6 +2,21 @@
 
 All notable changes to Operant. Versioning per [GOVERNANCE.md](GOVERNANCE.md).
 
+## [1.4.2] — G10 checks commit scope, not just staging (2026-10-08)
+
+On 2026-10-08 a session staged its own files by explicit path, exactly as G10 asks, then ran a plain `git commit`. The commit took the whole index, including nine files another session had already staged (`1f4598d`, repaired with a pushed git note). G10 only looked at how files were staged; a plain commit's scope comes from the index, which other sessions share.
+
+### Changed
+
+- **G10 commit scope** in `enforcement/policy-gate.py`: a `git commit` with no pathspec (no `-- <paths>`, no `--pathspec-from-file`, not `--dry-run`) is denied when `git diff --cached` in the commit's directory lists a staged path the command does not name. The directory comes from `git -C`, else the `cd` chain before the commit (Git Bash `/d/...` spellings included), else the hook's `cwd`. It is the gate's one stateful check: it runs git only for a commit with no pathspec and allows the call when git cannot be read. The denial lists the foreign paths and hands back `git commit -m "..." -- <paths>`. `policy.rules.json` gains an `index_state` trigger; the spec's G10 section covers the commit form in its trigger, pre-check, safer alternative, and post-check.
+- PowerShell here-strings (`@'...'@`, `@"..."@`) are stripped with the other literals, so a commit message cannot fake a pathspec or a whole-tree flag.
+- **E22** fixture adds a foreign file that the other session has already staged; a binding asserts it is still staged after the run. A plain commit now fails the eval, and so does unstaging the foreign file first. Checked against the runner's own `provision` + `eval_assert`: pathspec commit 7/7, plain commit 5/7, unstage-first 6/7.
+- `X-shared-workspace-staging` statement, `environment-awareness.md`, both `dist/` editions, `claude-code-hooks.md`, `MANIFEST.md`, and the deployment overlay in `SKILL.md` say "commit by pathspec".
+
+### Tests
+
+- `policy-gate.py --self-test`: 66 cases (was 41). The new cases cover commit scope against a stubbed index, here-strings with an apostrophe inside, and a live temp-repo case that runs the real `git diff --cached` path, including a `cd <repo> &&` prefix and `git -C`. Mutation-checked: removing the here-string strip fails 2 cases; removing the commit-scope check fails 12.
+
 ## [1.4.1] — Certification runs with the gates actually active (2026-09-14)
 
 ### Added

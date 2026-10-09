@@ -29,9 +29,22 @@ hands off to judgment with an actionable reason. Stdlib only.
     merged-only) no longer trips the `-D` pattern under IGNORECASE.
   * `--self-test` added (the docs had claimed one since 1.1.0).
 Keep the secret patterns in step with shield/shield.py.
+
+1.4.2 (2026-10-08):
+  * G10 also checks commit SCOPE. A plain `git commit` commits the whole index,
+    so a session that staged its own files by explicit path still swept 9 files
+    another session had already staged (commit 1f4598d). A `git commit` with no
+    `-- <paths>` pathspec is denied when the real index (`git diff --cached`)
+    holds a staged path the command does not name. This is the gate's only
+    stateful check: it reads git, only for a commit with no pathspec, and
+    allows the call if git cannot be read.
+  * PowerShell here-strings (@'...'@, @"..."@) are stripped with the other
+    literals, so a commit message cannot fake a pathspec or a whole-tree flag.
 """
 import json
+import os
 import re
+import subprocess
 import sys
 
 GATES = [
@@ -84,9 +97,93 @@ G10_PATTERNS = [
 ]
 _LITERALS = re.compile(
     r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\2\b"  # heredoc bodies (commit messages, scripts)
+    r"|@(['\"])\r?\n.*?\r?\n\3@"                # PowerShell here-strings
     r"|'[^']*'|\"[^\"]*\"",                     # quoted strings
     re.DOTALL,
 )
+
+# --- G10 commit scope (added 1.4.2, 2026-10-08) ---
+# Incident 2026-10-08: commit 1f4598d staged its own files by explicit path, then a
+# plain `git commit -m ...` committed the WHOLE index, including 9 files another
+# session had already staged. Explicit-path staging is not enough
+# on a shared index; the commit must carry a pathspec (`git commit -m "..." -- <paths>`),
+# which commits only those paths and leaves other entries staged for their owners.
+# Matched on the command with literals masked to same-length filler, so offsets line
+# up with the original and a quoted path after `--` still counts as a token.
+_GIT_COMMIT = re.compile(
+    r"\bgit((?:\s+(?:-C|-c|--git-dir|--work-tree)(?:=\S+|\s+(?!commit\b)\S+)?|\s+--no-pager))*"
+    r"\s+commit(?![\w-])([^\n;&|]*)",
+    re.IGNORECASE)
+_PATHSPEC = re.compile(r"(?:^|\s)--(?=\s+\S)|--pathspec-from-file\b", re.IGNORECASE)
+_DRY_RUN = re.compile(r"(?:^|\s)--dry-run\b", re.IGNORECASE)
+_DASH_C = re.compile(r"\bgit\s+-C\s+(\"[^\"]*\"|'[^']*'|\S+)", re.IGNORECASE)
+_CD = re.compile(
+    r"(?:^|[;&|\n(]\s*)(?:cd|pushd|Set-Location|sl)\s+(?:-(?:Literal)?Path\s+)?(\"[^\"]*\"|'[^']*'|[^\s;&|)]+)",
+    re.IGNORECASE)
+COMMIT_SCOPE_WHY = "a commit with no pathspec takes the whole index"
+
+
+def _mask(command: str) -> str:
+    return _LITERALS.sub(lambda m: "Q" * len(m.group(0)), command)
+
+
+def _unquote(s: str) -> str:
+    return s[1:-1] if len(s) >= 2 and s[0] == s[-1] and s[0] in "'\"" else s
+
+
+def _native_path(p: str) -> str:
+    # Git Bash spells D:\x as /d/x; Python on Windows needs the drive form.
+    m = re.match(r"^/([a-zA-Z])(/|$)", p)
+    if os.name == "nt" and m:
+        p = m.group(1).upper() + ":/" + p[m.end():]
+    return os.path.expanduser(p)
+
+
+def _commit_dir(command: str, masked: str, m, cwd: str) -> str:
+    """Directory the commit at match `m` runs in: its own `git -C <dir>`, else the
+    `cd` chain before it applied to the hook's cwd."""
+    d = _DASH_C.search(command, m.start(), m.start(2))
+    if d:
+        return os.path.join(cwd, _native_path(_unquote(d.group(1))))
+    base = cwd
+    for c in _CD.finditer(masked, 0, m.start()):
+        base = os.path.join(base, _native_path(_unquote(command[c.start(1):c.end(1)])))
+    return base
+
+
+def _staged_paths(directory: str):
+    """Paths staged in the index at `directory`, or None when git cannot say."""
+    try:
+        r = subprocess.run(["git", "-C", directory, "diff", "--cached", "--name-only", "-z"],
+                           capture_output=True, timeout=5,
+                           env=dict(os.environ, GIT_OPTIONAL_LOCKS="0"))
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    return [p for p in r.stdout.decode("utf-8", "replace").split("\0") if p]
+
+
+def _named(path: str, command: str) -> bool:
+    return re.search(r"(?<![\w.-])" + re.escape(path) + r"(?![\w.-])", command, re.IGNORECASE) is not None
+
+
+def _commit_scope(command: str, cwd: str, staged):
+    masked = _mask(command)
+    flat = command.replace("\\", "/")
+    for m in _GIT_COMMIT.finditer(masked):
+        tail = m.group(2)
+        if _PATHSPEC.search(tail) or _DRY_RUN.search(tail):
+            continue
+        paths = staged(_commit_dir(command, masked, m, cwd))
+        if not paths:
+            continue  # empty index, or git unreadable: never block on our own failure
+        foreign = [p for p in paths if not _named(p, flat)]
+        if foreign:
+            shown = ", ".join(foreign[:8]) + (" (+%d more)" % (len(foreign) - 8) if len(foreign) > 8 else "")
+            return "%s, and the index holds %d staged path(s) this command does not name: %s" % (
+                COMMIT_SCOPE_WHY, len(foreign), shown)
+    return None
 
 GUIDANCE = {
     "G1": ("Operant gate G1 (destructive command): {why}.\n"
@@ -116,6 +213,15 @@ GUIDANCE = {
             "and report the other dirty files as left for their owners. See "
             ".claude/skills/commit/SKILL.md. The scheduled daily_maintenance.py snapshot is the "
             "only sanctioned whole-tree committer."),
+    "G10-commit": ("Operant gate G10 (commit scope on a shared index): {why}.\n"
+                   "A plain `git commit` commits everything staged, including files another session "
+                   "staged and has not committed yet (2026-10-08 incident: commit 1f4598d swept 9 such "
+                   "files). Commit by pathspec instead; it commits only the named paths and leaves the "
+                   "rest staged for their owners:\n"
+                   "  git add -- \"<file>\" ... then  git commit -m \"<label>\" -- \"<file>\" ...\n"
+                   "Name only files THIS session created or edited (a new file must be added first; a "
+                   "rename needs both paths). Do not unstage, reset, or stash the paths listed above; "
+                   "report them as left for their owners. See .claude/skills/commit/SKILL.md."),
 }
 
 # Benign contexts G3's UPDATE heuristic must not fire on (reduce false positives).
@@ -143,12 +249,15 @@ def _rm_targets_all_derivable(command: str) -> bool:
     return True
 
 
-def check(command: str):
+def check(command: str, cwd: str = None, staged=_staged_paths):
     # G10 first, on the command with quoted strings / heredoc bodies stripped.
     stripped = _LITERALS.sub(" ", command)
     for pattern, why in G10_PATTERNS:
         if re.search(pattern, stripped, re.IGNORECASE):
             return "G10", why
+    why = _commit_scope(command, cwd or os.getcwd(), staged)
+    if why:
+        return "G10", why
     for gate, pattern, why in GATES:
         if why is None:
             continue  # placeholder rows handled separately
@@ -171,9 +280,10 @@ def main():
     if data.get("tool_name") not in ("Bash", "PowerShell"):
         sys.exit(0)
     command = (data.get("tool_input") or {}).get("command", "") or ""
-    gate, why = check(command)
+    gate, why = check(command, cwd=data.get("cwd"))
     if gate:
-        print(GUIDANCE[gate].format(why=why), file=sys.stderr)
+        key = "G10-commit" if why.startswith(COMMIT_SCOPE_WHY) else gate
+        print(GUIDANCE[key].format(why=why), file=sys.stderr)
         sys.exit(2)
     sys.exit(0)
 
@@ -232,18 +342,97 @@ def _cases():
         ("git commit -am 'quick'", "G10"),
         ("git add -- 'Marketingwiki/Daily/2026-09-14.md' 'Tools/x.py'", None),
         ("git commit -m 'commit skill: never run git add -A on the shared tree'", None),
+        ("git commit -m @'\nthe owner's rule: never git add -A\n'@ -- 'a.md'", None),  # here-string, apostrophe inside
     ]
+
+
+def _commit_cases():
+    # (command, paths the stubbed index holds or None for "git unreadable", expected gate).
+    # The 2026-10-08 shape: own files added by path, then a plain commit over a foreign entry.
+    foreign = ["tools/overlay/overlay.json", "tools/sync-skill.ps1"]
+    return [
+        ("git commit -m 'x'", foreign, "G10"),
+        ("git commit -m 'x'", [], None),                       # empty index: plain commit is harmless
+        ("git commit -m 'x'", None, None),                     # git unreadable: fail open
+        ("git commit -m 'x' -- 'a.md'", foreign, None),           # pathspec commits only a.md
+        ("git commit -m \"x\" -- \"docs/Project Index & Propagation Map.md\"", foreign, None),
+        ("git add -- a.md b.md && git commit -m 'x'", ["a.md", "b.md"], None),  # every staged path named
+        ("git add -- 'Hand offs/a.md' && git commit -m 'thesis screens'", ["Hand offs/a.md"] + foreign, "G10"),
+        ("git add -- data.md && git commit -m x", ["a.md"], "G10"),   # a.md is not named by data.md
+        ("git add -- Tools\\x.py && git commit -m x", ["Tools/x.py"], None),  # backslash spelling
+        ("git commit --amend --no-edit", foreign, "G10"),
+        ("git commit -m 'fix -- see notes'", foreign, "G10"),     # `--` inside the message is not a pathspec
+        ("git commit -F - <<'EOF'\nsubject -- with dashes\nEOF", foreign, "G10"),
+        ("git commit -m @'\nthe owner's fix -- see notes\n'@", foreign, "G10"),
+        ("git -C \"D:/x y\" commit -m 'x'", foreign, "G10"),
+        ("git -c user.name=codex commit -m x", foreign, "G10"),
+        ("git commit -m x --pathspec-from-file=paths.txt", foreign, None),
+        ("git commit --dry-run", foreign, None),
+        ("git log --grep commit --oneline", foreign, None),        # not a commit
+        ("git commit-tree HEAD^{tree} -m x", foreign, None),
+        ("git status --short", foreign, None),
+    ]
+
+
+def _live_case():
+    """End to end against a real index: a foreign staged file, the session's own file added by
+    path, then a plain commit (denied) and a pathspec commit (allowed). Also checks that a
+    `cd <repo> &&` prefix is followed from an unrelated cwd. Skipped when git is unavailable."""
+    import shutil
+    import tempfile
+    repo = tempfile.mkdtemp(prefix="operant-g10-")
+    try:
+        def git(*a):
+            subprocess.run(["git", "-C", repo] + list(a), check=True, capture_output=True)
+        git("init", "-q")
+        git("config", "user.email", "t@operant.local")
+        git("config", "user.name", "t")
+        for name in ("other-session.md", "mine.md"):
+            with open(os.path.join(repo, name), "w", encoding="utf-8") as f:
+                f.write("x\n")
+        git("add", "--", "other-session.md")
+        outside = os.path.dirname(repo)
+        fwd = repo.replace("\\", "/")
+        results = [
+            (check("git add -- mine.md && git commit -m 'mine'", cwd=repo)[0], "G10"),
+            (check("git add -- mine.md && git commit -m 'mine' -- mine.md", cwd=repo)[0], None),
+            (check("cd \"%s\" && git add -- mine.md && git commit -m 'mine'" % fwd, cwd=outside)[0], "G10"),
+            (check("git -C \"%s\" commit -m 'mine'" % fwd, cwd=outside)[0], "G10"),
+        ]
+    except (OSError, subprocess.CalledProcessError) as e:
+        print("SKIP live index case (git unavailable: %s)" % e)
+        return 0, 0
+    finally:
+        shutil.rmtree(repo, ignore_errors=True)
+    failed = sum(1 for got, want in results if got != want)
+    for i, (got, want) in enumerate(results):
+        print("%s %-8s live index case %d" % ("PASS" if got == want else "FAIL", str(got), i + 1))
+    return len(results), failed
+
+
+def _no_index(_directory):
+    return []
 
 
 def self_test():
     failures = 0
-    cases = _cases()
-    for command, expected in cases:
-        gate, _ = check(command)
+    total = 0
+    for command, expected in _cases():
+        gate, _ = check(command, staged=_no_index)
         ok = gate == expected
+        total += 1
         failures += 0 if ok else 1
-        print("%s %-8s %s" % ("PASS" if ok else "FAIL", str(gate), command[:70]))
-    print("self-test: %d/%d passed" % (len(cases) - failures, len(cases)))
+        print("%s %-8s %s" % ("PASS" if ok else "FAIL", str(gate), command[:70].replace("\n", " ")))
+    for command, paths, expected in _commit_cases():
+        gate, why = check(command, staged=lambda _d, p=paths: p)
+        ok = gate == expected and (gate is None or why.startswith(COMMIT_SCOPE_WHY))
+        total += 1
+        failures += 0 if ok else 1
+        print("%s %-8s %s" % ("PASS" if ok else "FAIL", str(gate), command[:70].replace("\n", " ")))
+    n, failed = _live_case()
+    total += n
+    failures += failed
+    print("self-test: %d/%d passed" % (total - failures, total))
     sys.exit(1 if failures else 0)
 
 

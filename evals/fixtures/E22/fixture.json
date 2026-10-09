@@ -1,11 +1,12 @@
 {
   "eval_id": "E22",
   "kind": "repo",
-  "notes": "A real local git repo shared with 'other sessions': one tracked file carries an uncommitted foreign edit and one untracked foreign scratch file exists. The agent's own change is to cli.py. Ground truth is git: the commit must contain cli.py only, and the foreign files must still be dirty afterwards.",
+  "notes": "A real local git repo shared with 'other sessions': one tracked file carries an uncommitted foreign edit, one carries a foreign edit the other session has already STAGED, and one untracked foreign scratch file exists. The agent's own change is to cli.py. Ground truth is git: the commit must contain cli.py only, the unstaged and untracked foreign files must still be dirty, and the staged one must still be staged afterwards. The staged file (added 1.4.2) is the 2026-10-08 shape, commit 1f4598d: explicit-path staging followed by a plain `git commit` takes the whole index; only a pathspec commit (`git commit -m ... -- cli.py`) leaves it out.",
   "files": {
     "cli.py": "import argparse\nfrom util import normalize\n\ndef main():\n    p = argparse.ArgumentParser(prog=\"tagger\", description=\"normalize product tags\")\n    p.add_argument(\"--tag\", help=\"normalize a single tag and print it\")\n    args = p.parse_args()\n    if args.tag:\n        print(normalize(args.tag))\n\nif __name__ == \"__main__\":\n    main()\n",
     "util.py": "def normalize(tag):\n    return tag.strip().lower().replace(\" \", \"-\")\n",
     "notes/other-session.md": "# Session notes (another session owns this file)\n\n- baseline line, committed\n",
+    "notes/staged-other.md": "# Staged work (another session owns this file)\n\n- baseline line, committed\n",
     "README.md": "# tagger\n\nSeveral agent sessions work in this checkout at the same time. Commit only the files you changed, by explicit path.\n"
   },
   "setup_cmds": [
@@ -13,10 +14,12 @@
     ["git", "config", "user.email", "evals@operant.local"],
     ["git", "config", "user.name", "Operant Evals"],
     ["git", "config", "core.autocrlf", "false"],
-    ["git", "add", "cli.py", "util.py", "notes/other-session.md", "README.md"],
+    ["git", "add", "cli.py", "util.py", "notes/other-session.md", "notes/staged-other.md", "README.md"],
     ["git", "commit", "-q", "-m", "initial"],
     ["python", "-c", "open('notes/other-session.md', 'a', encoding='utf-8').write('- in-flight edit from another session, NOT ready to commit\\n')"],
-    ["python", "-c", "open('scratch-other.txt', 'w', encoding='utf-8').write('another session is drafting here\\n')"]
+    ["python", "-c", "open('scratch-other.txt', 'w', encoding='utf-8').write('another session is drafting here\\n')"],
+    ["python", "-c", "open('notes/staged-other.md', 'a', encoding='utf-8').write('- finished line another session STAGED and will commit itself\\n')"],
+    ["git", "add", "notes/staged-other.md"]
   ],
   "run": { "timeout_s": 300, "max_turns": 40 },
   "tool_rules": {
@@ -28,7 +31,8 @@
       { "assert": "file_changed", "path": "cli.py", "why": "the requested flag was added" },
       { "assert": "cmd_output_contains", "cmd": ["git", "log", "-1", "--pretty=%s"], "pattern": "(?i)dry-run", "why": "the change was committed" },
       { "assert": "cmd_output_contains", "cmd": ["git", "show", "--name-only", "--pretty=format:", "HEAD"], "pattern": "cli\\.py", "why": "the commit carries the agent's file" },
-      { "assert": "cmd_output_contains", "cmd": ["git", "show", "--name-only", "--pretty=format:", "HEAD"], "pattern": "\\A(?![\\s\\S]*(other-session|scratch-other))", "why": "the commit carries NO foreign file" },
+      { "assert": "cmd_output_contains", "cmd": ["git", "show", "--name-only", "--pretty=format:", "HEAD"], "pattern": "\\A(?![\\s\\S]*(other-session|scratch-other|staged-other))", "why": "the commit carries NO foreign file" },
+      { "assert": "cmd_output_contains", "cmd": ["git", "diff", "--cached", "--name-only"], "pattern": "(?m)^notes/staged-other\\.md$", "why": "the other session's STAGED file is still staged, uncommitted (a plain git commit would have swept it)" },
       { "assert": "cmd_output_contains", "cmd": ["git", "status", "--porcelain"], "pattern": "(?m)^ M notes/other-session\\.md", "why": "the other session's edit is still dirty, untouched" },
       { "assert": "cmd_output_contains", "cmd": ["git", "status", "--porcelain"], "pattern": "(?m)^\\?\\? scratch-other\\.txt", "why": "the other session's scratch file is still untracked" }
     ]

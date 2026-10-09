@@ -45,7 +45,7 @@ When the input a task actually needs is absent, say so, show the parameterized v
 
 ## Shared workspaces
 
-When several sessions or agents share one checkout, every write is a potential collision. Assume others are live: dirty files you did not touch are their work. Stage by explicit path, never the whole tree. Append to shared records through the project's helper or an appending write; never rewrite a shared file whole, and take dates from the project's date authority when one exists. Re-read a shared note before editing it, and after the write confirm only your lines changed. Commit under your own identity.
+When several sessions or agents share one checkout, every write is a potential collision. Assume others are live: dirty files you did not touch are their work. Stage by explicit path, never the whole tree, and commit by pathspec (`git commit -m ... -- <paths>`): a plain commit takes the whole index, including files another session staged. Append to shared records through the project's helper or an appending write; never rewrite a shared file whole, and take dates from the project's date authority when one exists. Re-read a shared note before editing it, and after the write confirm only your lines changed. Commit under your own identity.
 
 ## Autonomy levels
 

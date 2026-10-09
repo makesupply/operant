@@ -64,7 +64,7 @@ for _stream in (sys.stdout, sys.stderr):
     except Exception:  # noqa: BLE001 - never let logging setup take the runner down
         pass
 
-SUITE_VERSION = "1.4.1"
+SUITE_VERSION = "1.4.2"
 HERE = os.path.dirname(os.path.abspath(__file__))
 BUNDLE = os.path.dirname(HERE)
 SMOKE_CORE = ["E1", "E4", "E7", "E10", "E14"]  # five highest-signal evals per eval-suite.md

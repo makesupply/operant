@@ -1,7 +1,7 @@
 {
   "meta": {
     "name": "Operant Enforcement Policy",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "description": "Machine-readable index of the code-enforced gates defined in generic-policy-spec.md. A host reads this to know what to block, what to warn on, and which confirmation schema to demand. Patterns are illustrative starting points — tune narrow and add project-specific entries rather than broadening generic ones. The shipped implementation (policy-gate.py) is the authority on exact patterns; run its --self-test after any change.",
     "self_test": "python enforcement/policy-gate.py --self-test",
     "actions": { "block": "Refuse the action; return the reason for the behavioral layer to complete.", "confirm": "Require the confirmation schema before proceeding.", "warn": "Allow, but surface a caution and log." }
@@ -144,11 +144,12 @@
         { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s--all(?=\\s|$)", "why": "git add --all" },
         { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(-u|--update)(?=\\s|$)", "why": "git add -u stages every tracked change" },
         { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(\\.|:/|\\*)(?=\\s|$)", "why": "git add . stages the whole tree" },
-        { "kind": "regex", "pattern": "\\bgit\\s+commit\\b[^\\n;&|]*\\s(-[a-zA-Z]*a[a-zA-Z]*|--all)(?=\\s|$)", "why": "git commit -a stages every tracked change" }
+        { "kind": "regex", "pattern": "\\bgit\\s+commit\\b[^\\n;&|]*\\s(-[a-zA-Z]*a[a-zA-Z]*|--all)(?=\\s|$)", "why": "git commit -a stages every tracked change" },
+        { "kind": "index_state", "pattern": "git commit with no `--` pathspec (and no --pathspec-from-file / --dry-run)", "check": "git diff --cached --name-only in the commit's directory (git -C, else the cd chain, else the hook cwd)", "why": "a commit with no pathspec takes the whole index; deny when a staged path is not named anywhere in the command" }
       ],
       "action": "block",
-      "notes": "Added 2026-09-03 after a concurrent /tico swept another session's finished files into commit e7430d2. Patterns are evaluated with quoted strings and heredoc bodies stripped so commit messages mentioning the flags do not trip it. Scheduled whole-tree snapshots (daily_maintenance.py) run outside the hooks and are exempt by construction.",
-      "safer_alternative": "git add -- <explicit paths of this session's files>; report other sessions' dirty files instead of staging them; provenance repair via git notes, never history rewrite",
+      "notes": "Added 2026-09-03 after a concurrent /tico swept another session's finished files into commit e7430d2. Patterns are evaluated with quoted strings, heredoc bodies, and PowerShell here-strings stripped so commit messages mentioning the flags do not trip it. 1.4.2 (2026-10-08): the index_state trigger, after commit 1f4598d staged by explicit path and then a plain git commit swept 9 files another session had already staged. It is the only trigger that reads state: it runs git only for a commit with no pathspec and allows the call when git cannot be read. Scheduled whole-tree snapshots (daily_maintenance.py) run outside the hooks and are exempt by construction.",
+      "safer_alternative": "git add -- <explicit paths of this session's files>, then git commit -m <label> -- <the same paths>; report other sessions' dirty and staged files instead of staging, unstaging, or committing them; provenance repair via git notes, never history rewrite",
       "required_from_level": "L1"
     }
   ]

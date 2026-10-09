@@ -12,7 +12,7 @@ Hooks are shell commands configured in `.claude/settings.json` (project) or `~/.
 
 ## 1. The policy gate — G1/G2/G3/G6/G10 (the one that matters)
 
-[`policy-gate.py`](policy-gate.py) is a single `PreToolUse` hook covering destructive commands (G1), history rewrites (G2), unbounded SQL mutations (G3), secret staging (G6), and — on a checkout shared by several sessions or agents — whole-tree staging (G10: `git add -A` / `.` / `--all` / `-u`, `git commit -a`, evaluated with quoted strings and heredoc bodies stripped so a commit message that mentions the flag does not trip it). It blocks the catastrophic subset and returns gate-specific, actionable guidance to the model — a code-level backstop for [safety.md](../references/safety.md)'s Tier 3, catching the cases a model might rationalize past. It is stdlib-only and cross-platform.
+[`policy-gate.py`](policy-gate.py) is a single `PreToolUse` hook covering destructive commands (G1), history rewrites (G2), unbounded SQL mutations (G3), secret staging (G6), and — on a checkout shared by several sessions or agents — whole-tree staging (G10: `git add -A` / `.` / `--all` / `-u`, `git commit -a`, evaluated with quoted strings and heredoc bodies stripped so a commit message that mentions the flag does not trip it; since 1.4.2 also a `git commit` with no `-- <paths>` pathspec while the index holds a staged path the command does not name, read from `git diff --cached` in the commit's directory). It blocks the catastrophic subset and returns gate-specific, actionable guidance to the model — a code-level backstop for [safety.md](../references/safety.md)'s Tier 3, catching the cases a model might rationalize past. It is stdlib-only and cross-platform.
 
 **Wiring, in `.claude/settings.json`:**
 
