@@ -40,6 +40,17 @@ Keep the secret patterns in step with shield/shield.py.
     allows the call if git cannot be read.
   * PowerShell here-strings (@'...'@, @"..."@) are stripped with the other
     literals, so a commit message cannot fake a pathspec or a whole-tree flag.
+
+1.4.3 (2026-10-09):
+  * G10 also checks a PATHSPEC commit. `git commit -- <path>` ignores the index
+    for <path> and commits its whole working-tree copy. On a shared note that
+    holds another session's uncommitted lines, that sweeps their lines in, even
+    when the session staged only its own (commit 137a149, undone before push).
+    A pathspec commit is denied when a named path is partially staged: it is in
+    `git diff --cached` AND in `git diff`. A path that a `git add` earlier in the
+    same command stages is exempt, since that add takes the whole file on purpose.
+    Like the commit-scope check, it reads git only for this command shape and
+    allows the call if git cannot be read.
 """
 import json
 import os
@@ -122,6 +133,19 @@ _CD = re.compile(
     re.IGNORECASE)
 COMMIT_SCOPE_WHY = "a commit with no pathspec takes the whole index"
 
+# --- G10 partial staging (added 1.4.3, 2026-10-09) ---
+# Incident 2026-10-09: a session staged only its own lines of the shared tracker and
+# daily note, then ran `git commit -m ... -- <those paths>`. A pathspec commit takes
+# each named file from the WORKING TREE, so another session's uncommitted lines in the
+# same files went into the commit (137a149, undone before push).
+_PATHSPEC_FILE = re.compile(r"--pathspec-from-file\b", re.IGNORECASE)
+_PATHSPEC_SEP = re.compile(r"(?:^|\s)--(?=\s+\S)")
+_GIT_ADD = re.compile(
+    r"\bgit((?:\s+(?:-C|-c|--git-dir|--work-tree)(?:=\S+|\s+(?!add\b)\S+)?|\s+--no-pager))*"
+    r"\s+add(?![\w-])([^\n;&|]*)",
+    re.IGNORECASE)
+PARTIAL_WHY = "a pathspec commit takes each named file's whole working-tree copy"
+
 
 def _mask(command: str) -> str:
     return _LITERALS.sub(lambda m: "Q" * len(m.group(0)), command)
@@ -164,16 +188,65 @@ def _staged_paths(directory: str):
     return [p for p in r.stdout.decode("utf-8", "replace").split("\0") if p]
 
 
+def _git_names(directory: str, *args):
+    try:
+        r = subprocess.run(["git", "-C", directory] + list(args) + ["--name-only", "-z"],
+                           capture_output=True, timeout=5,
+                           env=dict(os.environ, GIT_OPTIONAL_LOCKS="0"))
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    return [p for p in r.stdout.decode("utf-8", "replace").split("\0") if p]
+
+
+def _partial_paths(directory: str):
+    """Paths both staged and further modified in the working tree, or None when git cannot say."""
+    staged = _git_names(directory, "diff", "--cached")
+    dirty = _git_names(directory, "diff")
+    if staged is None or dirty is None:
+        return None
+    unstaged = set(dirty)
+    return [p for p in staged if p in unstaged]
+
+
 def _named(path: str, command: str) -> bool:
     return re.search(r"(?<![\w.-])" + re.escape(path) + r"(?![\w.-])", command, re.IGNORECASE) is not None
 
 
-def _commit_scope(command: str, cwd: str, staged):
+def _partial_scope(command: str, masked: str, m, cwd: str, partial):
+    """For a pathspec commit at match `m`: the named paths that are partially staged and
+    not re-staged whole by a `git add` earlier in the same command."""
+    tail_start = m.start(2)
+    sep = _PATHSPEC_SEP.search(masked, tail_start, m.end(2))
+    if not sep:
+        return None
+    paths = partial(_commit_dir(command, masked, m, cwd))
+    if not paths:
+        return None  # nothing partially staged, or git unreadable: never block on our own failure
+    spec = command[sep.end():m.end(2)].replace("\\", "/")
+    added = " ".join(command[a.start(2):a.end(2)]
+                     for a in _GIT_ADD.finditer(masked, 0, m.start())).replace("\\", "/")
+    hits = [p for p in paths if _named(p, spec) and not _named(p, added)]
+    if not hits:
+        return None
+    shown = ", ".join(hits[:8]) + (" (+%d more)" % (len(hits) - 8) if len(hits) > 8 else "")
+    return "%s, and %d named path(s) are staged with further unstaged changes that would ride along: %s" % (
+        PARTIAL_WHY, len(hits), shown)
+
+
+def _commit_scope(command: str, cwd: str, staged, partial=None):
     masked = _mask(command)
     flat = command.replace("\\", "/")
     for m in _GIT_COMMIT.finditer(masked):
         tail = m.group(2)
-        if _PATHSPEC.search(tail) or _DRY_RUN.search(tail):
+        if _DRY_RUN.search(tail):
+            continue
+        if _PATHSPEC.search(tail):
+            if partial is not None and not _PATHSPEC_FILE.search(tail):
+                why = _partial_scope(command, masked, m, cwd, partial)
+                if why:
+                    return why
             continue
         paths = staged(_commit_dir(command, masked, m, cwd))
         if not paths:
@@ -222,6 +295,19 @@ GUIDANCE = {
                    "Name only files THIS session created or edited (a new file must be added first; a "
                    "rename needs both paths). Do not unstage, reset, or stash the paths listed above; "
                    "report them as left for their owners. See .claude/skills/commit/SKILL.md."),
+    "G10-partial": ("Operant gate G10 (partial staging on a shared checkout): {why}.\n"
+                    "`git commit -- <path>` ignores what you staged for <path> and commits the whole "
+                    "file as it is on disk. The unstaged part may be another session's uncommitted "
+                    "lines (2026-10-09 incident: commit 137a149). Run `git diff -- <path>` and decide:\n"
+                    "  - every unstaged change is yours: `git add -- <path>` in the same command, "
+                    "then the pathspec commit;\n"
+                    "  - some are another session's: keep only your lines staged, then commit the "
+                    "index with NO pathspec and name every staged path in the same command, e.g.\n"
+                    "    git diff --cached --name-only -- \"<path>\" ... && git commit -F <msgfile>\n"
+                    "Never discard, stash, or overwrite the other session's lines. If other sessions "
+                    "also have paths staged, that route is blocked too: commit your other files now "
+                    "and leave the shared file for later, or ask the user. See "
+                    ".claude/skills/commit/SKILL.md."),
 }
 
 # Benign contexts G3's UPDATE heuristic must not fire on (reduce false positives).
@@ -249,13 +335,13 @@ def _rm_targets_all_derivable(command: str) -> bool:
     return True
 
 
-def check(command: str, cwd: str = None, staged=_staged_paths):
+def check(command: str, cwd: str = None, staged=_staged_paths, partial=_partial_paths):
     # G10 first, on the command with quoted strings / heredoc bodies stripped.
     stripped = _LITERALS.sub(" ", command)
     for pattern, why in G10_PATTERNS:
         if re.search(pattern, stripped, re.IGNORECASE):
             return "G10", why
-    why = _commit_scope(command, cwd or os.getcwd(), staged)
+    why = _commit_scope(command, cwd or os.getcwd(), staged, partial)
     if why:
         return "G10", why
     for gate, pattern, why in GATES:
@@ -282,7 +368,8 @@ def main():
     command = (data.get("tool_input") or {}).get("command", "") or ""
     gate, why = check(command, cwd=data.get("cwd"))
     if gate:
-        key = "G10-commit" if why.startswith(COMMIT_SCOPE_WHY) else gate
+        key = ("G10-commit" if why.startswith(COMMIT_SCOPE_WHY)
+               else "G10-partial" if why.startswith(PARTIAL_WHY) else gate)
         print(GUIDANCE[key].format(why=why), file=sys.stderr)
         sys.exit(2)
     sys.exit(0)
@@ -374,6 +461,67 @@ def _commit_cases():
     ]
 
 
+def _partial_cases():
+    # (command, partially staged paths the stub reports or None for "git unreadable", expected gate).
+    # The 2026-10-09 shape: own lines staged in a shared note, then a pathspec commit of that note.
+    tracker = "MarketingWiki/Areas/Open Items Tracker.md"
+    return [
+        ("git commit -F msg.txt -- \"%s\"" % tracker, [tracker], "G10"),
+        ("git commit -F msg.txt -- \"%s\"" % tracker, [], None),            # fully staged: nothing rides along
+        ("git commit -F msg.txt -- \"%s\"" % tracker, None, None),          # git unreadable: fail open
+        ("git commit -m x -- a.md b.md", ["b.md"], "G10"),
+        ("git commit -m x -- b.md", ["a.md"], None),                        # a.md is not in this commit
+        ("git commit -m 'touches a.md' -- b.md", ["a.md"], None),           # named only in the message
+        ("git add -- a.md && git commit -m x -- a.md", ["a.md"], None),     # the add takes the whole file on purpose
+        ("git add -- data.md && git commit -m x -- a.md", ["a.md"], "G10"), # data.md does not name a.md
+        ("git commit -m x -- Tools\\x.py", ["Tools/x.py"], "G10"),          # backslash spelling
+        ("git -C \"D:/x y\" commit -m x -- a.md", ["a.md"], "G10"),
+        ("git commit --amend --no-edit -- a.md", ["a.md"], "G10"),
+        ("git commit --dry-run -- a.md", ["a.md"], None),
+        ("git commit -m x --pathspec-from-file=paths.txt", ["a.md"], None),
+        ("git diff --cached --name-only -- a.md && git commit -F msg.txt", ["a.md"], None),  # the documented route
+    ]
+
+
+def _live_partial_case():
+    """End to end: a tracked file whose first edit is staged and whose second edit is not.
+    A pathspec commit of it is denied; add-then-commit and the documented plain commit pass."""
+    import shutil
+    import tempfile
+    repo = tempfile.mkdtemp(prefix="operant-g10p-")
+    try:
+        def git(*a):
+            subprocess.run(["git", "-C", repo] + list(a), check=True, capture_output=True)
+        path = os.path.join(repo, "shared.md")
+        git("init", "-q")
+        git("config", "user.email", "t@operant.local")
+        git("config", "user.name", "t")
+        git("config", "core.autocrlf", "false")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("base\n")
+        git("add", "--", "shared.md")
+        git("commit", "-q", "-m", "base")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write("my line\n")
+        git("add", "--", "shared.md")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write("another session's line\n")
+        results = [
+            (check("git commit -m 'mine' -- shared.md", cwd=repo)[0], "G10"),
+            (check("git add -- shared.md && git commit -m 'mine' -- shared.md", cwd=repo)[0], None),
+            (check("git diff --cached --name-only -- shared.md && git commit -m 'mine'", cwd=repo)[0], None),
+        ]
+    except (OSError, subprocess.CalledProcessError) as e:
+        print("SKIP live partial case (git unavailable: %s)" % e)
+        return 0, 0
+    finally:
+        shutil.rmtree(repo, ignore_errors=True)
+    failed = sum(1 for got, want in results if got != want)
+    for i, (got, want) in enumerate(results):
+        print("%s %-8s live partial case %d" % ("PASS" if got == want else "FAIL", str(got), i + 1))
+    return len(results), failed
+
+
 def _live_case():
     """End to end against a real index: a foreign staged file, the session's own file added by
     path, then a plain commit (denied) and a pathspec commit (allowed). Also checks that a
@@ -418,20 +566,27 @@ def self_test():
     failures = 0
     total = 0
     for command, expected in _cases():
-        gate, _ = check(command, staged=_no_index)
+        gate, _ = check(command, staged=_no_index, partial=_no_index)
         ok = gate == expected
         total += 1
         failures += 0 if ok else 1
         print("%s %-8s %s" % ("PASS" if ok else "FAIL", str(gate), command[:70].replace("\n", " ")))
     for command, paths, expected in _commit_cases():
-        gate, why = check(command, staged=lambda _d, p=paths: p)
+        gate, why = check(command, staged=lambda _d, p=paths: p, partial=_no_index)
         ok = gate == expected and (gate is None or why.startswith(COMMIT_SCOPE_WHY))
         total += 1
         failures += 0 if ok else 1
         print("%s %-8s %s" % ("PASS" if ok else "FAIL", str(gate), command[:70].replace("\n", " ")))
-    n, failed = _live_case()
-    total += n
-    failures += failed
+    for command, paths, expected in _partial_cases():
+        gate, why = check(command, staged=lambda _d, p=paths: p or [], partial=lambda _d, p=paths: p)
+        ok = gate == expected and (gate is None or why.startswith(PARTIAL_WHY))
+        total += 1
+        failures += 0 if ok else 1
+        print("%s %-8s %s" % ("PASS" if ok else "FAIL", str(gate), command[:70].replace("\n", " ")))
+    for live in (_live_case, _live_partial_case):
+        n, failed = live()
+        total += n
+        failures += failed
     print("self-test: %d/%d passed" % (total - failures, total))
     sys.exit(1 if failures else 0)
 

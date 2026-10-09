@@ -2,6 +2,20 @@
 
 All notable changes to Operant. Versioning per [GOVERNANCE.md](GOVERNANCE.md).
 
+## [1.4.3] — G10 checks a pathspec commit for partial staging (2026-10-09)
+
+1.4.2 told every session to commit by pathspec. On 2026-10-09 a session did that on two shared notes, the tracker and the daily log. It had staged only its own lines, but `git commit -- <path>` ignores the index for the paths it names and commits each file as it is on disk. Another session's uncommitted lines in the same files went into the commit (`137a149`, caught and undone before push). A pathspec commit is safe for whole files; it is not safe for a file that holds someone else's unstaged lines.
+
+### Changed
+
+- **G10 partial staging** in `enforcement/policy-gate.py`: a `git commit` with a `-- <paths>` pathspec is denied when a named path is partially staged, meaning it is listed by both `git diff --cached` and `git diff` in the commit's directory. A path that a `git add` earlier in the same command restages is exempt, because that add takes the whole file on purpose. Paths are matched literally, `--pathspec-from-file` and `--dry-run` are skipped, and the call is allowed when git cannot be read. The denial (`G10-partial`) explains the trap and hands back both routes: add the whole file if every unstaged change is yours, otherwise keep only your lines staged and commit the index with no pathspec, naming every staged path in the same command. `policy.rules.json` gains a second `index_state` trigger; the spec's G10 section covers it in its trigger, safer alternative, and block rules.
+- `X-shared-workspace-staging` statement, `environment-awareness.md`, `dist/single-file.md`, `claude-code-hooks.md`, `MANIFEST.md`, and the deployment overlay in `SKILL.md` describe the shared-file case.
+- **E22 is unchanged**, and `eval-suite.md` says why: with its foreign staged entry present, the only fully correct route for the partial shape is a temporary index, which the scenario should not demand. The new check is proven by self-test instead.
+
+### Tests
+
+- `policy-gate.py --self-test`: 83 cases (was 66). 14 stubbed partial-staging cases (deny, fully staged, git unreadable, path named only in the message, add-then-commit, backslash spelling, `git -C`, `--amend`, `--dry-run`, `--pathspec-from-file`, and the documented plain-commit route) plus a live temp-repo case with a real staged-then-edited file. Mutation-checked: removing the partial-staging check fails 7 cases.
+
 ## [1.4.2] — G10 checks commit scope, not just staging (2026-10-08)
 
 On 2026-10-08 a session staged its own files by explicit path, exactly as G10 asks, then ran a plain `git commit`. The commit took the whole index, including nine files another session had already staged (`1f4598d`, repaired with a pushed git note). G10 only looked at how files were staged; a plain commit's scope comes from the index, which other sessions share.

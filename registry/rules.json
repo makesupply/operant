@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "meta": {
     "name": "Operant Rule Registry",
-    "version": "1.4.2",
+    "version": "1.4.3",
     "description": "The single source of truth. Every behavioral rule mapped to the layer that owns it, the failure it prevents, the reference/playbook that teaches it, the enforcement gate that guarantees it, the schema that structures it, and the eval that proves it. Keeping prompt, enforcement, and eval in sync starts here: change a rule, and this file tells you every artifact that must move with it.",
     "layers": {
       "PROMPT": "Behavior that reasonably lives in instructions and produces judgment.",
@@ -250,14 +250,14 @@
     {
       "id": "X-shared-workspace-staging",
       "principle": 10,
-      "statement": "On a checkout shared with other sessions or agents, stage and commit only the files this session created or edited: stage by explicit path and commit by pathspec (git commit -m ... -- <paths>), because a plain commit takes the whole index, including files another session staged; never sweep the whole tree.",
+      "statement": "On a checkout shared with other sessions or agents, stage and commit only the files this session created or edited: stage by explicit path and commit by pathspec (git commit -m ... -- <paths>), because a plain commit takes the whole index, including files another session staged; and a pathspec commit takes each named file's whole working-tree copy, so in a file that holds another session's uncommitted lines, stage only your lines and commit the index; never sweep the whole tree.",
       "failure_mode": "The clobber — another session's in-flight work swept into this session's commit (2026-09-03 incident).",
       "layers": ["CODE_GUARD", "PROMPT"],
       "reference": "references/environment-awareness.md",
       "gate": "G10",
       "schema": null,
       "eval_id": "E22",
-      "note": "Added 1.4.0. G10 shipped in code on 2026-09-03 without this entry; release-check now refuses that shape of drift. 1.4.2: commit scope added after commit 1f4598d (2026-10-08) staged by path, then a plain commit swept 9 files another session had staged; E22 now carries a foreign STAGED file."
+      "note": "Added 1.4.0. G10 shipped in code on 2026-09-03 without this entry; release-check now refuses that shape of drift. 1.4.2: commit scope added after commit 1f4598d (2026-10-08) staged by path, then a plain commit swept 9 files another session had staged; E22 now carries a foreign STAGED file. 1.4.3: partial-staging check after commit 137a149 (2026-10-09) took a shared note whole by pathspec and swept another session's uncommitted lines; proven by policy-gate self-test cases (stubbed + live temp repo), not by E22, whose foreign STAGED entry would leave a temporary index as the only correct route."
     },
     {
       "id": "X-append-only-shared-logs",
