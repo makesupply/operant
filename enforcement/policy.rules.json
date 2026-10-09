@@ -1,8 +1,9 @@
 {
   "meta": {
     "name": "Operant Enforcement Policy",
-    "version": "1.3.0",
-    "description": "Machine-readable index of the code-enforced gates defined in generic-policy-spec.md. A host reads this to know what to block, what to warn on, and which confirmation schema to demand. Patterns are illustrative starting points — tune narrow and add project-specific entries rather than broadening generic ones.",
+    "version": "1.4.1",
+    "description": "Machine-readable index of the code-enforced gates defined in generic-policy-spec.md. A host reads this to know what to block, what to warn on, and which confirmation schema to demand. Patterns are illustrative starting points — tune narrow and add project-specific entries rather than broadening generic ones. The shipped implementation (policy-gate.py) is the authority on exact patterns; run its --self-test after any change.",
+    "self_test": "python enforcement/policy-gate.py --self-test",
     "actions": { "block": "Refuse the action; return the reason for the behavioral layer to complete.", "confirm": "Require the confirmation schema before proceeding.", "warn": "Allow, but surface a caution and log." }
   },
   "gates": [
@@ -132,6 +133,23 @@
       "block_when": "blind re-run of a side-effecting call with no idempotency key and no state check",
       "safer_alternative": "idempotency key; reconciliation query before retry; manual partial-result check",
       "required_from_level": "L2"
+    },
+    {
+      "id": "G10",
+      "name": "whole-tree-staging",
+      "tier": 2,
+      "confirmation_schema": null,
+      "triggers": [
+        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s-[a-zA-Z]*A[a-zA-Z]*(?=\\s|$)", "why": "git add -A stages every file in a working tree shared by concurrent sessions" },
+        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s--all(?=\\s|$)", "why": "git add --all" },
+        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(-u|--update)(?=\\s|$)", "why": "git add -u stages every tracked change" },
+        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(\\.|:/|\\*)(?=\\s|$)", "why": "git add . stages the whole tree" },
+        { "kind": "regex", "pattern": "\\bgit\\s+commit\\b[^\\n;&|]*\\s(-[a-zA-Z]*a[a-zA-Z]*|--all)(?=\\s|$)", "why": "git commit -a stages every tracked change" }
+      ],
+      "action": "block",
+      "notes": "Added 2026-09-03 after a concurrent /tico swept another session's finished files into commit e7430d2. Patterns are evaluated with quoted strings and heredoc bodies stripped so commit messages mentioning the flags do not trip it. Scheduled whole-tree snapshots (daily_maintenance.py) run outside the hooks and are exempt by construction.",
+      "safer_alternative": "git add -- <explicit paths of this session's files>; report other sessions' dirty files instead of staging them; provenance repair via git notes, never history rewrite",
+      "required_from_level": "L1"
     }
   ]
 }

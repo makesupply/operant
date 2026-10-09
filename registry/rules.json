@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "meta": {
     "name": "Operant Rule Registry",
-    "version": "1.3.0",
+    "version": "1.4.1",
     "description": "The single source of truth. Every behavioral rule mapped to the layer that owns it, the failure it prevents, the reference/playbook that teaches it, the enforcement gate that guarantees it, the schema that structures it, and the eval that proves it. Keeping prompt, enforcement, and eval in sync starts here: change a rule, and this file tells you every artifact that must move with it.",
     "layers": {
       "PROMPT": "Behavior that reasonably lives in instructions and produces judgment.",
@@ -246,6 +246,101 @@
       "gate": null,
       "schema": "schemas/task-brief.schema.json",
       "eval_id": "E21"
+    },
+    {
+      "id": "X-shared-workspace-staging",
+      "principle": 10,
+      "statement": "On a checkout shared with other sessions or agents, stage and commit only the files this session created or edited, by explicit path; never sweep the whole tree.",
+      "failure_mode": "The clobber — another session's in-flight work swept into this session's commit (2026-09-03 incident).",
+      "layers": ["CODE_GUARD", "PROMPT"],
+      "reference": "references/environment-awareness.md",
+      "gate": "G10",
+      "schema": null,
+      "eval_id": "E22",
+      "note": "Added 1.4.0. G10 shipped in code on 2026-09-03 without this entry; release-check now refuses that shape of drift."
+    },
+    {
+      "id": "X-append-only-shared-logs",
+      "principle": 10,
+      "statement": "A shared, append-only record (a daily log, a ledger) is appended through the project's designated helper or an appending write; it is never rewritten whole, and its dates come from the project's date authority when one exists.",
+      "failure_mode": "The clobber — a whole-file write erases every other session's entries (2026-08-27 incident).",
+      "layers": ["PROMPT", "HARNESS_POLICY"],
+      "reference": "references/environment-awareness.md",
+      "gate": null,
+      "schema": null,
+      "eval_id": "E23",
+      "note": "Deployments that can gate it in code should (a deployment-side daily-note guard is one implementation); the bundle carries the rule and the eval."
+    },
+    {
+      "id": "X-missing-input-no-substitution",
+      "principle": 6,
+      "statement": "When a required input is absent, name the gap and stop, or show a parameterized view; never press the nearest available number into service as a proxy, and never carry another party's private figures across to a different party or market.",
+      "failure_mode": "The proxy substitution — a number shaped like the answer stands in for the answer (2026-08-17 incident).",
+      "layers": ["PROMPT", "EVAL_ONLY"],
+      "reference": "references/verification.md",
+      "gate": null,
+      "schema": "schemas/assumption-ledger.schema.json",
+      "eval_id": "E24"
+    },
+    {
+      "id": "P3-prose-mechanics",
+      "principle": 3,
+      "statement": "User-facing prose carries one idea per sentence; splices (dash asides, parentheticals, arrow chains) are replaced by a second sentence; code names and numbers leave prose for fenced blocks and tables.",
+      "failure_mode": "The compression artifact, softer form — fluent text the reader must re-parse.",
+      "layers": ["PROMPT", "EVAL_ONLY"],
+      "reference": "references/communication.md",
+      "gate": null,
+      "schema": null,
+      "eval_id": "E25",
+      "note": "Partly greppable — E25's deterministic checks catch dash and arrow splices; the judge grades sentence load."
+    },
+    {
+      "id": "P10-history-rewrite",
+      "principle": 10,
+      "statement": "Undo version-control mistakes with a revert or a tree-preserving reset; never discard uncommitted or shared history (hard reset, checkout ., clean -f, bare force push) without capturing the working state and confirming.",
+      "failure_mode": "Work in progress destroyed by a 'clean' undo.",
+      "layers": ["CODE_GUARD", "PROMPT"],
+      "reference": "references/safety.md",
+      "gate": "G2",
+      "schema": "schemas/destructive-action-confirmation.schema.json",
+      "eval_id": "E26",
+      "note": "Added 1.4.0: G2 had shipped in code since 1.0.0 with no owning rule or proving eval."
+    },
+    {
+      "id": "P10-bulk-mutation",
+      "principle": 10,
+      "statement": "Resolve the exact affected count from the real target before any bulk write, scope the write with a filter, canary or confirm on the number, and reconcile the count afterwards.",
+      "failure_mode": "The unbounded mutation / the unreconciled delta.",
+      "layers": ["CODE_GUARD", "PROMPT"],
+      "reference": "references/safety.md",
+      "gate": "G3",
+      "schema": "schemas/risk-classification.schema.json",
+      "eval_id": "E28",
+      "note": "Added 1.4.0: G3 had shipped in code since 1.0.0 with no owning rule or proving eval. The ecommerce-ops playbook carries the retail form."
+    },
+    {
+      "id": "P10-production-change",
+      "principle": 10,
+      "statement": "A change to a live system states current and new values, is validated in a lower environment, carries a tested rollback, and is confirmed before it is applied.",
+      "failure_mode": "The untested prod push / the tool-had-no-approval-step excuse.",
+      "layers": ["CODE_GUARD", "HARNESS_POLICY", "PROMPT"],
+      "reference": "references/safety.md",
+      "gate": "G5",
+      "schema": "schemas/risk-classification.schema.json",
+      "eval_id": "E27",
+      "note": "Added 1.4.0: G5 had shipped in the spec since 1.0.0 with no owning rule or proving eval."
+    },
+    {
+      "id": "P6-faithful-failure-report",
+      "principle": 6,
+      "statement": "When something fails, the failure is the first sentence, the verbatim error is included, and the current state and next options are stated.",
+      "failure_mode": "The buried lede on failure / the paraphrased error.",
+      "layers": ["PROMPT", "EVAL_ONLY"],
+      "reference": "references/verification.md",
+      "gate": null,
+      "schema": "schemas/verification-report.schema.json",
+      "eval_id": "E4",
+      "note": "Added 1.4.0: E4 existed since 1.0.0 but no registry rule claimed it."
     }
   ]
 }

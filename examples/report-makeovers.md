@@ -2,6 +2,8 @@
 
 Real report shapes, before and after. Each "before" is fluent, polite, and fails the reader; each "after" applies the discipline. Study the *deltas*.
 
+*(The "after" blocks follow the house prose mechanics in [communication.md](../references/communication.md): one idea per sentence, no dash asides or parentheticals, code names and numbers kept out of prose where they can be. Rewritten to that standard in 1.4.0.)*
+
 ---
 
 ## 1. The task-completion report
@@ -12,9 +14,13 @@ Real report shapes, before and after. Each "before" is fluent, polite, and fails
 **What's wrong:** filler opening; travelogue; "should resolve"; the actual mechanism never stated; ends by asking permission to verify — verification was part of the job.
 
 **After:**
-> Fixed and verified. Logins were failing when a refresh fired in the same second the token expired — the expiry check used `<` where the token service uses `<=`, so a token could be simultaneously valid and invalid. Changed the comparison in `session.ts:141` to match, added a regression test that fails without the fix, and the full auth suite passes (94/94). One flag: the same comparison pattern exists in the password-reset flow — untouched since it wasn't in scope, but it likely has the same bug. Want it fixed too?
+> Fixed and verified. Logins failed when a refresh fired in the same second the token expired. The expiry check used a strict comparison while the token service uses an inclusive one, so a token could be valid and invalid at once. I changed the comparison in `session.ts` to match, and added a regression test that fails without the fix.
+>
+> Auth suite: 94 of 94 pass.
+>
+> One flag. The password-reset flow has the same comparison pattern and likely the same bug. It was out of scope, so I left it alone. Want it fixed too?
 
-**The deltas:** outcome first; mechanism in one sentence; proof with numbers; sibling discovered and *flagged, not silently fixed*; the only question is a genuine scope decision.
+**The deltas:** outcome first; mechanism in plain sentences; the count on its own line; sibling discovered and *flagged, not silently fixed*; the only question is a genuine scope decision.
 
 ---
 
@@ -28,9 +34,15 @@ Real report shapes, before and after. Each "before" is fluent, polite, and fails
 **What's wrong:** the failure — the only thing that matters — is buried in sentence four under a pile of what went well; "some kind of connectivity issue" is a paraphrase where evidence belongs; "different approaches" is motion without a hypothesis.
 
 **After:**
-> The deploy is blocked: the service can't reach the database — `connection refused` on `db:5432` at startup (full log below). Build, config, and migrations are all fine. Two hypotheses: the compose network was renamed in last week's infra change (checking now), or the DB container's healthcheck delays past the service's connect timeout. I'll know which within a few minutes; if it's the timeout, the fix is a one-line retry policy.
+> The deploy is blocked. The service cannot reach the database at startup and exits with the error below. Build, config, and migrations are all fine.
+>
+> ```
+> connection refused: db:5432
+> ```
+>
+> Two hypotheses. The compose network was renamed in last week's infra change, which I am checking now. Or the database container's health check delays past the service's connect timeout. I will know which within a few minutes. If it is the timeout, the fix is a one-line retry policy.
 
-**The deltas:** bad news first; verbatim error, not paraphrase; named hypotheses with a discrimination plan; the healthy parts compressed to one sentence.
+**The deltas:** bad news first; the verbatim error in a block, not a paraphrase in prose; named hypotheses with a discrimination plan; the healthy parts compressed to one sentence.
 
 ---
 
@@ -42,9 +54,15 @@ Real report shapes, before and after. Each "before" is fluent, polite, and fails
 **What's wrong:** never answers the question; enumerates "factors" without weighing them; "depends on several variables" returns the question to sender.
 
 **After:**
-> No — at 10× traffic the current setup falls over, and the bottleneck is specific: the single worker saturates at roughly 4× current load (measured: ~120 req/s ceiling vs. your projected 300). The DB and cache are fine at 10× — I load-tested both. The fix is one change: running 4 workers behind the existing gunicorn config, which the instance's memory already supports. That takes it to ~480 req/s, comfortably over the target. It's a two-line config change — say the word.
+> No. At ten times today's traffic the current setup falls over, and the bottleneck is specific: the single worker saturates well below the projected peak. The database and the cache are fine at ten times, which I load-tested. The fix is one change: run four workers behind the existing gunicorn config, which the instance's memory already supports. It is a two-line config change. Say the word.
+>
+> | | requests per second |
+> |---|---|
+> | Current ceiling, one worker (measured) | 120 |
+> | Projected peak | 300 |
+> | With four workers | 480 |
 
-**The deltas:** the answer is word one; the bottleneck quantified, non-bottlenecks dispatched in a sentence; a recommendation with its cost; verification method visible ("measured", "load-tested").
+**The deltas:** the answer is word one; the bottleneck named in prose and quantified in a table; non-bottlenecks dispatched in a sentence; a recommendation with its cost; verification method visible ("measured", "load-tested").
 
 ---
 
@@ -56,9 +74,13 @@ Real report shapes, before and after. Each "before" is fluent, polite, and fails
 **What's wrong:** zero information — no numerator, no denominator, no blocker status, no next milestone. Mood, not state.
 
 **After:**
-> Migration status: 9 of 14 modules done and verified against the old output. The remaining 5 include the two hard ones (auth, billing) — auth is in progress now. One discovery worth knowing: billing's date handling depends on the legacy timezone bug, so migrating it *fixes* the bug and changes historical report totals by ~0.3%. That needs your call before I migrate it — flag when you've decided; everything else proceeds meanwhile.
+> Migration status. The remaining modules include the two hard ones, auth and billing, and auth is in progress now.
+>
+> Done: 9 of 14 modules, each verified against the old output.
+>
+> One discovery worth knowing. Billing's date handling depends on the legacy timezone bug, so migrating it fixes the bug and shifts historical report totals by about a third of a percent. That needs your call before I migrate billing. Everything else proceeds meanwhile.
 
-**The deltas:** countable progress; the hard remainder named; a genuine decision surfaced with its consequence; no dead air.
+**The deltas:** countable progress on its own line; the hard remainder named; a genuine decision surfaced with its consequence; no dead air.
 
 ---
 
@@ -81,6 +103,6 @@ Real report shapes, before and after. Each "before" is fluent, polite, and fails
 **What's wrong:** headers and a table for one fact — structure as costume.
 
 **After:**
-> 8080 (set in `config/app.yml`; override with the `PORT` env var).
+> 8080. It is set in the app config and can be overridden with the PORT environment variable.
 
 **The delta:** a simple question gets a sentence.

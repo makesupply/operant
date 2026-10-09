@@ -14,31 +14,29 @@ Every file in the bundle, one line each.
 | `CHANGELOG.md` | Version history |
 | `LICENSE` | MIT-0 — free use, no attribution required |
 | `.claude-plugin/plugin.json` + `marketplace.json` | Agent Skills plugin manifest + marketplace entry for install-via-marketplace |
-| `.github/workflows/checks.yml` | CI: all five self-tests + repo-wide Shield scan + release check, on every push |
-| `.gitignore` | Keeps runtime state (`instincts/store.json`, `__pycache__`) out of the repo |
 
 ## enforcement/ — code-enforced gates (runnable)
 
 | File | One line |
 |---|---|
 | `generic-policy-spec.md` | Host-agnostic G1–G9 gate spec: trigger, pre-check, confirmation payload, safer alternative, post-check, per-autonomy-level |
-| `policy-gate.py` | PreToolUse hook enforcing G1/G2/G3/G6 on shell tools; blocks with actionable guidance; stdlib, self-tested |
-| `injection-sentinel.py` | PostToolUse hook implementing G8 — names and reports prompt injection in fetched content; stdlib, self-tested |
-| `policy.rules.json` | Machine-readable gate index |
+| `policy-gate.py` | PreToolUse hook enforcing G1/G2/G3/G6/G10 on shell tools; blocks with actionable guidance; stdlib; `--self-test` (34 cases incl. the mid-word slug false positives as negatives) |
+| `injection-sentinel.py` | PostToolUse hook implementing G8 — names and reports prompt injection in fetched content; `--log PATH`; `--self-test` (13 benign API-doc fragments + 7 payloads) |
+| `policy.rules.json` | Machine-readable gate index (ten gates); `self_test` field names the command |
 | `claude-code-hooks.md` | Copy-paste settings.json wiring for the gates, Shield, Instincts, and Stop-nudges, with verification commands |
 
 ## shield/ — config-surface auditor
 
 | File | One line |
 |---|---|
-| `shield.py` | Static auditor for the agent's own config (CLAUDE.md/settings/hooks/MCP): secrets, injection, over-broad perms, risky hooks; CI-ready, self-tested |
-| `README.md` | What Shield scans, usage, tuning, opt-out marker, and when to run it |
+| `shield.py` | Static auditor for the agent's own config (CLAUDE.md/settings/hooks/MCP): secrets, injection, over-broad perms, risky hooks; CI-ready; `.operant-shield-ignore` + `--ignore`; skips and reports linked git worktrees; defensively quoted injection phrases downgraded to LOW; `--self-test` |
+| `README.md` | What Shield scans, usage, scope control (ignore file, worktrees, defensive quoting), tuning, opt-out marker, and when to run it |
 
 ## instincts/ — continuous-learning loop
 
 | File | One line |
 |---|---|
-| `instincts.py` | Confidence-scored behavioral-pattern store: record at session end, inject proven ones at session start, decay/retire on correction; self-tested |
+| `instincts.py` | Confidence-scored behavioral-pattern store: record at session end, inject proven ones at session start, decay/retire on correction |
 | `README.md` | The loop, why confidence-scoring beats a flat list, commands, candidate format, wiring, and exclusions |
 
 ## references/ — the principles, in depth (18)
@@ -92,7 +90,7 @@ Each follows the same shape: Phase 0 orientation → verified increments → adv
 | `claude-code.md` | Native install, CLAUDE.md wiring, mapping to Claude Code mechanisms, model notes, hooks enforcement |
 | `other-ides.md` | Cursor / Windsurf / Copilot recipes, the generic rules-file port, what degrades and how to compensate |
 | `api-and-custom-agents.md` | Three-layer architecture, multi-agent notes, non-coding mapping, token economics, evals |
-| `autonomous-ops-agent.md` | Long-running autonomous orchestrator archetype; why enforcement must be code; the wiring checklist |
+| `hermes-agent.md` | Long-running autonomous orchestrator archetype; why enforcement must be code; the wiring checklist |
 | `multi-agent-orchestrators.md` | Lead/subagent systems: the brief-as-schema, the verification gradient, centralized gates, failure isolation |
 
 ## schemas/ — the discipline made machine-readable (9 + index)
@@ -109,13 +107,13 @@ Each follows the same shape: Phase 0 orientation → verified increments → adv
 
 | File | One line |
 |---|---|
-| `eval-suite.md` | 21 behavioral scenarios with pass criteria and fail tells; a two-number scorecard (behavior score + safety gate) |
+| `eval-suite.md` | 28 behavioral scenarios with pass criteria and fail tells; a two-number scorecard (behavior score + safety gate); every code gate has a proving eval |
 | `runner-spec.md` | How to run the suite as a system: fixtures, deterministic-then-judge flow, scoring, run modes, blocking failures |
 | `eval-runner.py` | Reference implementation: stdlib-only runner — validate / run (smoke, full, certification) / score / self-test; deterministic checks first, judge prompts always emitted, optional auto-judge, schema-validated scorecards |
 | `fixtures/README.md` | The fixture format: minimal, fresh-per-run, sandboxed side effects — plus the fixture.json contract the runner consumes |
-| `fixtures/E*/fixture.json` | 20 provisioning fixtures: planted bugs, mock side-effecting tools (mailer, vendor export, payment CLI), post-state bindings |
-| `scenarios/*.json` | All 21 machine-readable eval scenarios (E1–E21) matching `eval-scenario.schema.json` |
-| `runs/` | Recorded scorecards; first baseline: `2026-07-09-haiku-baseline/` (claude-haiku-4-5, prompt-only, L2) |
+| `fixtures/E*/fixture.json` | 26 provisioning fixtures: planted bugs, mock side-effecting tools (mailer, vendor export, payment CLI, deployer), shared-checkout and shared-log sandboxes, a sqlite order store, post-state bindings |
+| `scenarios/*.json` | All 28 machine-readable eval scenarios (E1–E28) matching `eval-scenario.schema.json` |
+| `runs/` | Recorded scorecards: `2026-07-09-haiku-baseline/` (claude-haiku-4-5, prompt-only, L2 — 12/21, blocked) · `2026-09-fable-cert/` (claude-fable-5-1, gates active — 26/28, ready) · `2026-09-opus-cert/` (claude-opus-5 — 26/28, ready) · `2026-09-sonnet-cert/` (claude-sonnet-5 — 22/28, blocked) · `2026-09-haiku-gates-cert/` (claude-haiku-4-5 with gates — 17/28, blocked) |
 
 ## dist/ — compiled editions (2)
 
@@ -128,7 +126,7 @@ Each follows the same shape: Phase 0 orientation → verified increments → adv
 
 | File | One line |
 |---|---|
-| `release-check.py` | Release lint: version agreement across registry/policy/plugin/CHANGELOG, dist presence, and bundle↔mirror parity by SHA-256; stdlib, exit 1 on drift |
+| `release-check.py` | Release lint: version agreement across registry/policy/plugin/marketplace/runner/CHANGELOG, dist presence, governance cross-checks (every gate → spec section + registry rule; every rule's eval → scenario file; every fixture-kind scenario → fixture), and bundle↔mirror parity by SHA-256; stdlib, exit 1 on drift |
 
 ## Reading order for humans
 

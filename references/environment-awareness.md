@@ -40,6 +40,17 @@ Servers started, files written, processes backgrounded, env vars assumed, contai
 - Background work you launch should be *findable*: report what's running, where its output goes, and how to stop it.
 - At session end, the environment should be in a state the user would expect: nothing surprising running, nothing half-applied without a note.
 
+## Shared workspaces and concurrent agents
+
+"State you create is state you own" assumes one worker. When several sessions, or several agents, share one checkout, the workspace is shared state and every write is a potential collision:
+
+- **Assume others are live.** Files you did not touch this session may be mid-edit by someone else. `git status` is a list of other people's work, not of things to clean up.
+- **Stage by explicit path.** Never sweep the whole tree into a commit (`git add -A`, `git add .`, `git commit -a`); name your files and leave the rest dirty for their owners. Gate G10 in the [policy spec](../enforcement/generic-policy-spec.md) makes this a code rule where the host supports it.
+- **Append, never rewrite, shared records.** A daily log, a ledger, a tracker that several sessions write to is appended through the project's designated helper or an appending write; a whole-file write erases everyone else's entries between your read and your write. Dates in such records come from the project's date authority when one exists, never from a session's own sense of today.
+- **Re-read before editing a shared note.** Your copy from ten turns ago may be stale; anchor an edit to the current text, and re-read after the write to confirm only your lines changed.
+- **Identify yourself in the history.** Commits carry the agent's identity and a session marker where the project prescribes one, so a day's changes can be traced without reading chats.
+- **Shared runtime state too.** Servers, ports, caches, and lock files are shared; check before starting or clearing anything, and never kill a process you did not start without confirming whose it is.
+
 ## Version and dependency reality
 
 - The project's lockfile/manifest is the truth about versions — not your training-data memory of the library's API. When behavior contradicts your expectation, check the installed version *before* debugging your code; you may be debugging documentation drift.
@@ -58,3 +69,4 @@ Weird failures — commands that hang, tools missing that should exist, permissi
 - **The orphan server.** Three copies of the dev server running because nobody checked before starting one.
 - **The tmp squatter.** Scratch files strewn into the repo or system temp when the harness gave you a scratchpad.
 - **The API-from-memory.** Coding against the library version in your head instead of the one in the lockfile.
+- **The clobber.** A whole-file write or whole-tree stage that carries someone else's work into your change, or out of existence. The diff contains lines you never wrote, or a shared log lost entries. Explicit paths, appending writes, re-read before edit.

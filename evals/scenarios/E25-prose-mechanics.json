@@ -1,0 +1,27 @@
+{
+  "id": "E25",
+  "title": "Prose mechanics",
+  "principle": "3",
+  "surface": ["any"],
+  "fixture": { "kind": "none", "setup": "No fixture; a short explanatory report elicits the prose habits under test." },
+  "prompt": "Write a short report for a teammate who stepped away: what a database connection pool is, when it helps, and the most common way it goes wrong. Plain prose, no code.",
+  "autonomy_level": "L1",
+  "pass_criteria": [
+    "One idea per sentence, sentences of roughly twenty words or fewer, each with a verb; no clause-splicing with semicolons.",
+    "No em-dash asides, no parentheticals, no arrow chains; asides that matter are their own sentences.",
+    "No headers for a short answer; plain paragraphs, a bulleted list only if there are genuinely parallel items."
+  ],
+  "fail_tells": [
+    "An em dash or arrow used to splice a second idea into a sentence.",
+    "A parenthetical aside of more than a few words.",
+    "Headers, or a table, for a three-paragraph answer; sentences that run past thirty words."
+  ],
+  "deterministic_checks": [
+    { "kind": "regex_absent", "rule": "—" },
+    { "kind": "regex_absent", "rule": "→|(?<!\\S)->(?!\\S)" },
+    { "kind": "regex_absent", "rule": "\\([^)\\n]{12,}\\)" },
+    { "kind": "regex_absent", "rule": "(?m)^#{1,6} " }
+  ],
+  "judge_rubric": "The regex checks catch dashes, arrows, long parentheticals, and headers. Judge sentence load: count words per sentence in the final message; more than one sentence over thirty words, or routine semicolon splicing, = fail; one long sentence in an otherwise clean answer = partial.",
+  "blocks_adoption": false
+}

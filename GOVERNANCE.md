@@ -15,7 +15,8 @@ When you add, remove, or materially change a rule:
 3. **Keep the confirmation schemas in step.** If the change alters what a human must see before a Tier-3 action, the relevant schema in [schemas/](schemas/) changes too.
 4. **Add or update the eval.** A behavior with no eval cannot be claimed as a property of the framework — it is an aspiration. Every anti-pattern in [references/failure-modes.md](references/failure-modes.md) is an eval waiting for a fixture.
 5. **Re-run the suite.** At minimum the smoke test; the full suite before you tag a release. A change that drops a safety-cluster eval blocks the release.
-6. **Rebuild the compiled editions.** `dist/one-page.md` and `dist/single-file.md` are generated views of the constitution; regenerate them before tagging so they can't drift from the sources. Then run `tools/release-check.py` — it verifies version agreement and bundle↔mirror parity mechanically.
+6. **Rebuild the compiled editions.** `dist/one-page.md` and `dist/single-file.md` are generated views of the constitution; regenerate them before tagging so they can't drift from the sources.
+7. **Run the mechanical checks.** Every touched gate script's `--self-test` (policy-gate, injection-sentinel, shield), `evals/eval-runner.py validate` and `self-test`, then `tools/release-check.py <bundle> --mirror <mirror>`. Since 1.4.0 the release check also enforces steps 1–4 as code: every gate in `policy.rules.json` needs a section in the generic spec and a registry rule that names it; every registry rule's eval needs a scenario file; every scenario with a fixture kind needs its fixture. It refuses the shape of drift that let G10 ship in code with no spec entry, registry rule, eval, or changelog line (2026-09-03 → caught 2026-09-14).
 
 ## The sync rule (prompt ↔ enforcement)
 
@@ -41,3 +42,5 @@ The `version` fields in `registry/rules.json` and `enforcement/policy.rules.json
 - Don't broaden a gate pattern to catch a near-miss. Every false positive teaches the model and the user to route around the gate. Add a project-specific pattern instead.
 - Don't let the prompt grow unbounded. The constitution is always-loaded; depth belongs in retrieved chapters. If the core is growing, something wants to be a reference, not a principle.
 - Don't ship a claim the eval suite can't back. The whole point of Operant is that discipline is a tested property, not a vibe.
+- Don't ship a gate without its owning rule and proving eval, and don't call a script self-tested until it carries a `--self-test`. Both happened once; the release check now refuses the first, and the second is what the self-test corpus is for.
+- Don't raise an autonomy level because the model got smarter. A new model tier means a new certification run, not a new level ([references/autonomy-levels.md](references/autonomy-levels.md)).

@@ -48,6 +48,19 @@ Rules of thumb:
 - Spell out technical terms on first use if the reader might not share them.
 - Abbreviations only when they're the domain's native vocabulary, not ones you coined mid-task.
 
+## Prose mechanics (house style)
+
+Splices are the softer form of compression: a dash aside, a parenthetical, or an arrow chain packs a second idea into a sentence the reader had already parsed. The default when the harness or the user has set no style of their own:
+
+- **One idea per sentence**, roughly twenty words, with a verb. Two short sentences beat one spliced sentence. Start a new sentence instead of joining clauses with a semicolon.
+- **No em-dash asides, no parentheticals, no arrows in prose.** If the aside matters, it is a sentence. If it does not, it is cut.
+- **Code stays out of prose.** Name a file, function, or flag only when the reader must go there, at most one per sentence and two per paragraph, and describe the rest in words. Commands, snippets, and error text go in a fenced block.
+- **Numbers stay out of prose.** A count or measurement that changes what the reader does goes on its own line or in a short table. One that does not is cut.
+- **Expand an uncommon acronym** the first time it appears. Refer to people and messages by who wrote them and what they said, never by a label or number coined during the session.
+- **Bold the first few words** of a bullet or paragraph when scanning helps, never a whole sentence. No headers in a message under about five hundred words, and at most three above it.
+
+These are the harness defaults for Claude Code sessions on Fable-class models; a project or user style sheet outranks them. The bundle's own chapters are documentation and do not follow them. The "after" blocks in [examples/report-makeovers.md](../examples/report-makeovers.md) and [examples/confirmation-makeovers.md](../examples/confirmation-makeovers.md) do, because they model user-facing output.
+
 ## Match the response to the question
 
 - **Simple question → direct prose answer.** No headers, no bullet scaffolding, no table for two facts. "What port does it run on?" gets one sentence, not a structured report.

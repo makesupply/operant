@@ -35,7 +35,7 @@ Full recipes, size-limit workarounds, and what degrades on each platform: [adapt
 
 ## Your own agent (API / SDK)
 
-Minimum viable: put [dist/single-file.md](dist/single-file.md) in your system prompt, before task instructions. Proper build (three-layer architecture, code-enforced safety gates, chapter retrieval): [adaptations/api-and-custom-agents.md](adaptations/api-and-custom-agents.md). For an autonomous/scheduled agent, read [adaptations/autonomous-ops-agent.md](adaptations/autonomous-ops-agent.md) first — the enforcement layer is not optional there.
+Minimum viable: put [dist/single-file.md](dist/single-file.md) in your system prompt, before task instructions. Proper build (three-layer architecture, code-enforced safety gates, chapter retrieval): [adaptations/api-and-custom-agents.md](adaptations/api-and-custom-agents.md). For an autonomous/scheduled agent, read [adaptations/hermes-agent.md](adaptations/hermes-agent.md) first — the enforcement layer is not optional there.
 
 Pick an autonomy level ([references/autonomy-levels.md](references/autonomy-levels.md)) and implement the gates it requires ([enforcement/generic-policy-spec.md](enforcement/generic-policy-spec.md)) before you turn it loose.
 

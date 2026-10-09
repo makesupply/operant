@@ -1,10 +1,10 @@
-# Adaptation: Long-Running Personal / Ops Orchestrator Agents (the autonomous-ops archetype)
+# Adaptation: Long-Running Personal / Ops Orchestrator Agents (the Hermes-class archetype)
 
-For builders wiring Operant into an *autonomous ops agent*: a custom local agent with many tools, persistent memory, scheduled and recurring jobs, and standing authority to act across systems on its operator's behalf. It reads mail, moves money, edits records, posts, deploys, and files reports — often while the operator is asleep. This is the highest-stakes deployment the framework addresses, because it pairs real authority with reduced human-in-the-loop. Everything below follows from that pairing.
+For builders wiring Operant into a *Hermes-class agent*: a custom local agent with many tools, persistent memory, scheduled and recurring jobs, and standing authority to act across systems on its operator's behalf. It reads mail, moves money, edits records, posts, deploys, and files reports — often while the operator is asleep. This is the highest-stakes deployment the framework addresses, because it pairs real authority with reduced human-in-the-loop. Everything below follows from that pairing.
 
 ## Why enforcement must be code here, not prompt
 
-An interactive agent has a human catching its mistakes in real time. An autonomous ops agent does not: it acts unattended and outward-facing, so the irreversible subset of its actions cannot rely on self-discipline. Self-discipline is real and load-bearing — but it governs the *reversible majority*, where a wrong move costs a retry. The *irreversible minority* — a wire transfer, a mass send, a production deploy, a hard delete — must be governed by code the model cannot talk its way past.
+An interactive agent has a human catching its mistakes in real time. A Hermes-class agent does not: it acts unattended and outward-facing, so the irreversible subset of its actions cannot rely on self-discipline. Self-discipline is real and load-bearing — but it governs the *reversible majority*, where a wrong move costs a retry. The *irreversible minority* — a wire transfer, a mass send, a production deploy, a hard delete — must be governed by code the model cannot talk its way past.
 
 Concretely, these belong in the agent's own action-gating loop, not in its prompt ([safety.md](../references/safety.md)):
 
@@ -41,11 +41,11 @@ Map every cron/scheduled task to [recurring-automation.md](../playbooks/recurrin
 
 ## Multi-tool routing
 
-An autonomous ops agent is tool-rich, so [tool-discipline.md](../references/tool-discipline.md) is central: fire independent calls in parallel, prefer dedicated tools over generic shells, and never blindly re-run a failed call. The retry-after-side-effect rule matters most in exactly this archetype — an unattended retry of a timed-out send or charge can double-send or double-charge with no human watching, so the loop checks server-side state before it retries or reconciles.
+A Hermes-class agent is tool-rich, so [tool-discipline.md](../references/tool-discipline.md) is central: fire independent calls in parallel, prefer dedicated tools over generic shells, and never blindly re-run a failed call. The retry-after-side-effect rule matters most in exactly this archetype — an unattended retry of a timed-out send or charge can double-send or double-charge with no human watching, so the loop checks server-side state before it retries or reconciles.
 
 ## Autonomy levels
 
-The operator picks a risk profile per [autonomy-levels.md](../references/autonomy-levels.md); an autonomous ops agent is the archetypal L3 deployment. The counterintuitive rule: **higher autonomy requires stronger code enforcement and richer audit logging, not looser rules.** Granting the agent standing authority to act without confirmation raises the floor of what the code must guarantee — every Tier-3 path it's trusted to walk unsupervised needs a tighter gate and a durable record, not a removed one. Autonomy is bought with enforcement, not traded against it.
+The operator picks a risk profile per [autonomy-levels.md](../references/autonomy-levels.md); a Hermes-class agent is the archetypal L3 deployment. The counterintuitive rule: **higher autonomy requires stronger code enforcement and richer audit logging, not looser rules.** Granting the agent standing authority to act without confirmation raises the floor of what the code must guarantee — every Tier-3 path it's trusted to walk unsupervised needs a tighter gate and a durable record, not a removed one. Autonomy is bought with enforcement, not traded against it.
 
 ## Confirmation payloads
 

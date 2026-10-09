@@ -1,7 +1,7 @@
 {
   "name": "operant",
-  "version": "1.3.0",
-  "description": "A portable operating discipline for AI agents — outcome-first communication, verify-before-done, risk-aware execution across coding and non-coding work. Ten Principles, 18 references, 18 playbooks, gate checklists, a behavioral eval suite, code-enforced safety gates, a config-surface auditor, and a continuous-learning loop. Any model, any harness.",
+  "version": "1.4.1",
+  "description": "A portable operating discipline for AI agents — outcome-first communication, verify-before-done, risk-aware execution across coding and non-coding work. Ten Principles, 18 references, 18 playbooks, gate checklists, a 28-scenario behavioral eval suite, ten code-enforced safety gates with self-tests, a config-surface auditor, a mechanized release check, and a continuous-learning loop. Any model, any harness.",
   "author": {
     "name": "Operant contributors"
   },
@@ -19,6 +19,6 @@
   "skills": [
     "./SKILL.md"
   ],
-  "homepage": "https://github.com/makesupply/operant",
+  "homepage": "https://github.com/your-org/operant",
   "spec": "https://agentskills.io"
 }

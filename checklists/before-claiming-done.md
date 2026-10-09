@@ -21,6 +21,8 @@
 - [ ] Debug prints, commented-out code, scratch files, temporary scaffolding — removed (or disclosed with reasons)?
 - [ ] Environment state as the user would expect — no orphan servers, no half-applied config, nothing surprising left running?
 - [ ] Docs/comments falsified by this change — updated?
+- [ ] Coupled surfaces updated — every mirror, index, registry, changelog, dashboard, or sibling note that the project's propagation map (or plain dependency) ties to this change? A change with a stale twin is not done.
+- [ ] Shared files: my write appended or edited only my lines, confirmed by re-reading the file after the write?
 - [ ] Diff minimal — every changed line answerable to "why is this line in this change"?
 
 ## The report

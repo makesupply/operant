@@ -34,6 +34,7 @@ Each gate is defined by seven fields:
 - **Post-action verification:** confirm the intended items are gone and nothing outside scope changed; confirm a recovery path still exists if one was promised.
 - **Block deterministically:** the catastrophic pattern list, unless the specific action was human-approved through the permission flow.
 - **Warn / nudge:** near-miss patterns (a delete scoped to a single known path) — allow, but require the confirmation payload at Tier 3.
+- **Exempt:** a recursive or forced delete whose every target is *derivable* state — build and tool caches (`__pycache__`, `.pytest_cache`, `node_modules`, …) or a scratch path under `/tmp/` — is Tier 1 per [safety.md](../references/safety.md) and is not blocked. The whole `/tmp`, `dist`, `build`, or any real path still blocks. (Added 1.4.1 after a certification run blocked three housekeeping deletes; a gate that fires on cache cleanup teaches the model to route around it.)
 
 ## G2 — History-rewrite gate
 
@@ -115,6 +116,20 @@ Each gate is defined by seven fields:
 - **Block deterministically:** a blind re-run of a side-effecting call with no idempotency key and no state check.
 - **Warn / nudge:** retries of pure reads or clearly idempotent calls — allow freely.
 
+## G10 — Shared-workspace staging gate
+
+*(Added 1.3.0, 2026-09-03, after a session's whole-tree `git add -A` swept another session's finished deliverable into its own commit. Documented here in 1.4.0; the change protocol had been skipped.)*
+
+- **Trigger:** a version-control staging command that takes the whole working tree rather than named paths — `git add -A` / `--all` / `-u` / `.` / `:/` / `*`, `git commit -a` / `-am` — on a checkout that more than one session or agent works in.
+- **Pre-check:** `git status --short` was read; the set of files THIS session created or edited is known; every other dirty file is someone else's in-flight work.
+- **Confirmation payload:** none — the safer alternative is always available, so the gate blocks and hands back the explicit-path form.
+- **Safer alternative:** `git add -- <path> <path> ...` naming only this session's files, then `git diff --cached --stat` to confirm the staged set equals the touch list; report the other dirty files as left for their owners. If a scheduled whole-tree snapshot exists, it is the one sanctioned sweep and it runs outside the agent's hooks.
+- **Post-action verification:** `git show --name-only HEAD` lists only this session's files; `git status --short` still shows the other sessions' files as dirty.
+- **Block deterministically:** the whole-tree forms above, evaluated with quoted strings and heredoc bodies stripped so a commit message that mentions the flag does not trip it.
+- **Warn / nudge:** none — a single-session checkout can disable the gate; it should not be softened.
+
+**Sibling rule, prompt-owned:** shared append-only records (a daily log, a ledger) are appended through the project's designated helper or an appending write, never rewritten whole. Where the host can gate it, it should (a deployment's daily-note guard is one implementation); the bundle carries the rule in [environment-awareness.md](../references/environment-awareness.md) and proves it with eval E23.
+
 ---
 
 ## Gates by autonomy level
@@ -132,5 +147,6 @@ Enforcement is not optional above the lowest levels; higher autonomy *requires* 
 | G7 PII-minimization | warn | warn | **required** | **required** |
 | G8 injection-reporting | **required** | **required** | **required** | **required** + auto-quarantine |
 | G9 idempotency | n/a | warn | **required** | **required** + keys mandatory |
+| G10 shared-workspace staging | n/a | **required** when shared | **required** when shared | **required** when shared |
 
 **"Required" means code, not prompt.** If the host cannot enforce a required gate for a given level, the deployment is not at that level — drop it a level until the enforcement exists (the ratchet rule). A gate that passes its eval ([../evals/eval-suite.md](../evals/eval-suite.md), safety cluster) is real; one that only exists in prose is a hope.

@@ -2,6 +2,8 @@
 
 Confirmation requests for risky actions, before and after. A good confirmation lets the user decide *without trusting you blindly*: exact scope, real consequence, honest alternative. A bad one extracts a "yes" that means nothing.
 
+*(The "after" blocks follow the house prose mechanics in [communication.md](../references/communication.md). A confirmation must still carry its exact numbers — that is the safety rule, and it outranks the style rule — so the counts sit on their own scope line rather than woven through the prose. Rewritten to that standard in 1.4.0.)*
+
 ---
 
 ## 1. The bulk delete
@@ -12,7 +14,11 @@ Confirmation requests for risky actions, before and after. A good confirmation l
 **What's wrong:** "a number" (how many?), "appear to be" (by what test?), "old" (defined how?), no reversibility statement. The user's "yes" would authorize an unknown.
 
 **After:**
-> Ready to delete 1,847 records: all `sessions` rows with `last_active` before 2025-01-01 and no linked orders (the linked-order check excluded 214 that a naive date cut would have caught). This is permanent — no soft-delete on this table — but I've exported the full set to `backup/sessions-2026-07-06.jsonl` first and verified it's restorable: row count matches and a 5-record spot-check reads back intact. Alternative: archive to a cold table instead of deleting, which is reversible forever and costs ~40MB. Delete, or archive?
+> Ready to delete the session records that are older than 2025 and have no linked order. The linked-order check matters: it excludes rows a naive date cut would have removed.
+>
+> Scope: 1,847 rows to delete · 214 rows excluded by the order check · full set exported to the backup folder and verified restorable (row count matches, a 5-record spot check reads back intact).
+>
+> This is permanent, since the table has no soft delete. Alternative: archive the rows to a cold table instead, which is reversible forever and costs about 40 MB. Delete, or archive?
 
 **The deltas:** exact count and criteria; the near-miss that proves care; irreversibility stated; verified backup; a genuinely different alternative offered.
 
@@ -26,7 +32,11 @@ Confirmation requests for risky actions, before and after. A good confirmation l
 **What's wrong:** "according to the plan we discussed" asks the user to trust memory; no recipient count, no content shown, no acknowledgment that send is unrecallable.
 
 **After:**
-> The campaign is staged — nothing sent yet. Before you approve, the exact facts: **2,314 recipients** (the "active last 90 days" segment, list attached), subject "Your July update", sending from news@…, scheduled immediately on your go. The full rendered email is below — this exact content goes out, and sends can't be recalled. One thing I'd change: the CTA still links to the staging URL — I'd fix that first. Fix and send, or review the render first?
+> The campaign is staged and nothing has been sent. The exact facts are on the next line, and the full rendered email follows them. This exact content goes out, and sends cannot be recalled.
+>
+> Recipients: 2,314 in the active-last-90-days segment (list attached) · Subject: "Your July update" · From: the news address · Timing: immediately on your go.
+>
+> One thing I would change first: the call-to-action still links to the staging URL. Fix and send, or review the render first?
 
 **The deltas:** verbatim payload shown (the shown-payload confirmation *is* the dry run); the count; the un-recallability named; and the agent's own review surfaced a real defect before asking.
 
@@ -40,7 +50,11 @@ Confirmation requests for risky actions, before and after. A good confirmation l
 **What's wrong:** no current→new values, no blast radius, no rollback story, and "should" — has the diagnosis been verified or is this pattern-matching?
 
 **After:**
-> Recommendation for the latency issue, pending your go since it's production: raise the API pool from 10 to 25 connections. Evidence this is the actual bottleneck: pool-wait time accounts for 340ms of the 400ms p95 (metrics screenshot below), and connection count — not CPU or query time — is what's pinned. Blast radius: the DB comfortably supports 25 more connections (currently at 30% of its max). Rollback is the same one-line change, effective on the next deploy (~2 min). If it doesn't move p95 within 15 minutes of deploying, the diagnosis is wrong and I'll revert and dig further. Go?
+> Recommendation for the latency issue, pending your go because it is production: raise the API connection pool from 10 to 25. The evidence points at the pool rather than the database. Pool wait accounts for most of the p95, and connection count is what is pinned, not CPU or query time. The metrics screenshot is below.
+>
+> Evidence: pool wait 340 ms of the 400 ms p95 · connections pinned · CPU and query time flat · database at under a third of its connection limit.
+>
+> Rollback is the same one-line change, live on the next deploy in about two minutes. If p95 has not moved fifteen minutes after the deploy, the diagnosis is wrong and I revert and dig further. Go?
 
 **The deltas:** evidence-action match shown, not asserted; exact values both directions; rollback path and *falsification criterion* pre-committed.
 
@@ -54,7 +68,7 @@ Confirmation requests for risky actions, before and after. A good confirmation l
 **What's wrong:** this isn't a confirmation at all — it's a confession. The approval is requested *after* the scope expanded, bundled with the requested work so declining is expensive.
 
 **After (what should have happened, mid-task):**
-> The fix you asked for is done and verified — that's ready regardless of the following. While in there I found two adjacent problems: the retry loop never backs off (will hammer the API under outage), and `parse_config` is duplicated in three files. Neither is in scope, so I haven't touched them. The backoff one is genuinely urgent — 15 minutes to fix if you want it now; the duplication can be a cleanup task whenever. Ship just the fix, or fix + backoff?
+> The fix you asked for is done and verified, and it ships regardless of what follows. While in there I found two adjacent problems. I have touched neither, because they are out of scope. The retry loop never backs off, which will hammer the API during an outage. That one is urgent and takes about fifteen minutes. A config parser is duplicated in three files, and that can be a cleanup task whenever. Ship just the fix, or the fix plus the backoff?
 
 **The deltas:** requested work delivered independently; discoveries reported, not folded in; urgency differentiated; the user chooses scope *before* the diff grows.
 
@@ -68,6 +82,6 @@ Confirmation requests for risky actions, before and after. A good confirmation l
 **What's wrong:** if the folder matched its description, fine — but the report gives no evidence anyone looked. The failure this invites: "temp" contained the only copy of something.
 
 **After (when the look revealed a mismatch):**
-> Stopping before the delete: you described `temp_exports/` as scratch files, but it contains 14 files including `client-contracts-final.zip` (2.1GB, modified last week) — that doesn't look like scratch to me. The other 13 match the description (all `.tmp`, all >6 months old). I can delete the 13 and leave the zip, or you can confirm the whole folder goes. Which?
+> Stopping before the delete. You described the exports folder as scratch files, but it holds a large zip named like final client contracts, modified last week, and that does not look like scratch. The other thirteen files match the description: all temporary, all older than six months. I can delete the thirteen and leave the zip, or you can confirm the whole folder goes. Which?
 
 **The deltas:** the look happened; the contradiction surfaced instead of steamrolled; a split option that honors both the request and the evidence.

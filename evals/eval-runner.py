@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# operant-shield: ignore-file  (an eval runner's vocabulary is "eval(...)"; scanning it is noise)
 """Operant eval runner — the reference implementation of evals/runner-spec.md.
 
 Runs the behavioral eval suite (evals/scenarios/*.json) against a live agent,
@@ -56,7 +55,16 @@ import subprocess
 import sys
 import tempfile
 
-SUITE_VERSION = "1.2.0"
+# Log lines carry judge notes and agent text (arrows, em dashes, non-Latin names). On
+# Windows a cp1252 console or pipe raises UnicodeEncodeError inside a worker thread,
+# which aborted a whole certification run on 2026-09-14. Force UTF-8, replace on failure.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001 - never let logging setup take the runner down
+        pass
+
+SUITE_VERSION = "1.4.1"
 HERE = os.path.dirname(os.path.abspath(__file__))
 BUNDLE = os.path.dirname(HERE)
 SMOKE_CORE = ["E1", "E4", "E7", "E10", "E14"]  # five highest-signal evals per eval-suite.md
@@ -517,7 +525,7 @@ def cmd_validate(args):
             for rel in bind.get("file_unchanged", []):
                 if rel not in fx.get("files", {}):
                     warnings.append("%s: file_unchanged path %r not among fixture files (created by setup_cmds?)" % (eid, rel))
-    expected = {"E%d" % i for i in range(1, 22)}
+    expected = {"E%d" % i for i in range(1, 29)}
     absent = sorted(expected - set(scenarios), key=eval_sort_key)
     if absent:
         warnings.append("suite incomplete — missing: %s" % ", ".join(absent))
@@ -549,6 +557,14 @@ def run_one(eid, scenario, fixture, run_dir, discipline_text, cli, args, empty_m
     out = {"eval_id": eid, "det_results": [], "judgment": None}
     try:
         pre = provision(fixture, sandbox, discipline_text)
+        if getattr(args, "sandbox_settings", None):
+            # Certification with gates ACTIVE: copy a settings.json (hooks wired to the
+            # Operant gate scripts by absolute path) into the sandbox project so the
+            # headless session runs under the same enforcement floor the deployment
+            # has. Without this the run measures the prompt layer alone.
+            sdir = os.path.join(sandbox, ".claude")
+            os.makedirs(sdir, exist_ok=True)
+            shutil.copy(args.sandbox_settings, os.path.join(sdir, "settings.json"))
     except Exception as e:  # noqa: BLE001 - provisioning failure => skipped, with reason
         out.update({"verdict": "skipped", "decided_by": "deterministic",
                     "notes": "fixture provisioning failed: %s" % str(e)[:300]})
@@ -611,7 +627,7 @@ def cmd_run(args):
         with open(log_path, "a", encoding="utf-8") as fh:
             fh.write(line + "\n")
 
-    log("run %s | mode=%s judge=%s | %d eval(s): %s" % (label, args.mode, args.judge, len(ids), ", ".join(ids)))
+    log("run %s | mode=%s judge=%s | %d evals: %s" % (label, args.mode, args.judge, len(ids), ", ".join(ids)))
     log("subject model=%s | judge model=%s | cli=%s" % (args.model, args.judge_model, version))
     per_eval = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
@@ -812,7 +828,10 @@ def main(argv=None):
     rp.add_argument("--timeout", type=int, default=300, help="per-eval subject timeout (s)")
     rp.add_argument("--max-turns", type=int, default=40)
     rp.add_argument("--autonomy-level", choices=["L0", "L1", "L2", "L3"], default="L2")
-    rp.add_argument("--enforcement", default="", help="comma-separated gates active during the run")
+    rp.add_argument("--enforcement", default="", help="comma-separated gates active during the run (recorded in the scorecard subject)")
+    rp.add_argument("--sandbox-settings", help="a .claude/settings.json copied into every sandbox so host hooks "
+                    "(the Operant gate scripts, by absolute path) are active during the run; required for an honest "
+                    "certification run, since --enforcement is only a label")
     sp = sub.add_parser("score")
     sp.add_argument("--run", required=True)
     sp.add_argument("--judgments", help="JSON: {eval_id: {verdict, reason[, decided_by]}}")

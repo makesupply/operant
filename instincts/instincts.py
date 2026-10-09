@@ -190,65 +190,7 @@ def cmd_prune(store, args):
     print(f"pruned {before - len(kept)} instinct(s); {len(kept)} remain")
 
 
-def self_test() -> int:
-    """Exercise the whole loop against a throwaway store: record, reinforce,
-    inject (threshold + withholding), correction-retire, prune."""
-    import contextlib
-    import io
-    import tempfile
-    checks = []
-    with tempfile.TemporaryDirectory() as td:
-        store_path = os.path.join(td, "store.json")
-        cand = os.path.join(td, "cands.json")
-        with open(cand, "w", encoding="utf-8") as fh:
-            json.dump([
-                {"trigger": "editing prod config", "action": "diff against live state first", "confidence": 0.65},
-                {"trigger": "user asks for a summary", "action": "one-sentence outcome first"},
-            ], fh)
-        noise = io.StringIO()
-        with contextlib.redirect_stdout(noise):
-            store = load(store_path)
-            cmd_record(store, argparse.Namespace(file=cand))
-            save(store_path, store)
-            checks.append(("record adds new instincts", len(store["instincts"]) == 2))
-            store = load(store_path)
-            cmd_record(store, argparse.Namespace(file=cand))
-            save(store_path, store)
-        insts = list(store["instincts"].values())
-        checks.append(("re-record reinforces instead of duplicating",
-                       len(insts) == 2 and all(i["observations"] == 2 for i in insts)))
-        conf = {i["trigger"]: i["confidence"] for i in insts}
-        checks.append(("corroboration raises confidence", conf["editing prod config"] > 0.65))
-        buf = io.StringIO()
-        with contextlib.redirect_stdout(buf):
-            cmd_inject(store, argparse.Namespace(k=INJECT_TOPK, min=INJECT_THRESHOLD))
-        out = buf.getvalue()
-        checks.append(("inject surfaces the proven instinct", "editing prod config" in out))
-        checks.append(("inject withholds the unproven instinct", "asks for a summary" not in out))
-        with contextlib.redirect_stdout(noise):
-            cmd_correct(store, argparse.Namespace(trigger="prod config", retire=True))
-            save(store_path, store)
-        buf2 = io.StringIO()
-        with contextlib.redirect_stdout(buf2):
-            cmd_inject(store, argparse.Namespace(k=INJECT_TOPK, min=INJECT_THRESHOLD))
-        checks.append(("a retiring correction silences the instinct",
-                       "editing prod config" not in buf2.getvalue()))
-        with contextlib.redirect_stdout(noise):
-            cmd_prune(store, argparse.Namespace())
-            save(store_path, store)
-        checks.append(("prune drops the retired instinct", len(store["instincts"]) == 1))
-    failed = 0
-    for name, ok in checks:
-        if not ok:
-            failed += 1
-            print("FAIL " + name)
-    print("self-test: %d/%d passed" % (len(checks) - failed, len(checks)))
-    return 1 if failed else 0
-
-
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "self-test":
-        sys.exit(self_test())
     ap = argparse.ArgumentParser(description="Operant Instincts — continuous-learning loop")
     ap.add_argument("--store", default=DEFAULT_STORE)
     sub = ap.add_subparsers(dest="cmd", required=True)

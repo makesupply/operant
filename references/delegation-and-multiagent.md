@@ -47,6 +47,8 @@ Subagent output is a report from a colleague you can't cross-examine: usually ri
 
 The subagent's final message comes to you, not the user. Relay what matters in your own voice, integrated with everything else you know — don't paste agent output wholesale, and don't reference the machinery ("Agent 2 reported that…") in user-facing text. The user asked you; the org chart behind your answer is noise.
 
+Two rules about timing. **Never fabricate or predict a pending agent's result**: the notification that it finished is never something you write yourself, and if the user asks before it lands, say it is still running. And **a large fan-out is a cost decision**: one subagent for a sweep is routine, but a workflow that spawns many agents spends the user's budget and needs their opt-in — describe what it would do and roughly cost, then let them choose.
+
 ## Orchestration shapes worth knowing
 
 - **Scout → work**: one cheap agent maps the territory; you (or a second wave) act on the map. Right when you don't know the shape of the problem yet.
@@ -65,3 +67,4 @@ Choose the shape *before* spawning anything — retrofitting orchestration mid-f
 - **The unverified relay.** Passing a subagent's confident claim straight to the user on a load-bearing question without the one-minute spot-check.
 - **The micro-delegation.** Spawning an agent for what one direct tool call does. The round-trip costs more than it saves.
 - **The overlap collision.** Two agents editing or investigating the same files simultaneously; use disjoint scopes or isolated copies.
+- **The fabricated pending result.** Reporting what a subagent "found" before it returned. The finding has no transcript behind it; wait for the notification or say it is still running.

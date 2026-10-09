@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Operant — a portable operating discipline for AI agents, distributed as an installable skill.",
-    "version": "1.3.0"
+    "version": "1.4.1"
   },
   "plugins": [
     {
       "name": "operant",
       "source": "./",
       "description": "Operating discipline: Ten Principles + references + playbooks + checklists + evals + code-enforced gates + config auditor + continuous-learning loop.",
-      "version": "1.3.0",
+      "version": "1.4.1",
       "license": "MIT-0",
       "category": "productivity",
       "keywords": ["operating-discipline", "agent-behavior", "safety", "verification", "eval"]

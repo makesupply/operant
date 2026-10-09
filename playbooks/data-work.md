@@ -11,6 +11,7 @@ Never run the real analysis as your first query. First, profile:
 - **The weird tails**: min/max of every numeric you'll use. Negative quantities, 1970 timestamps, and 9999 placeholder values announce themselves in thirty seconds here and poison averages silently forever after.
 - **The sensitivity screen**: does this data contain people — names, emails, addresses, purchase or health details? Then minimization applies to everything downstream ([security-posture.md](../references/security-posture.md)): profile with aggregates and masked samples (`c***@gmail.com`, `customer 4471`) rather than pasting real records into the transcript or report, and keep individuals out of examples, fixtures, and memory. The analysis needs distributions, not identities — except where the deliverable is explicitly about named individuals, which stays in the deliverable and nowhere else.
 - **Semantics from the source, not the column name**: `revenue` — gross or net? refunds included? which currency? If a data dictionary or owner exists, check; if not, state your reading as an assumption ([ambiguity-and-requirements.md](../references/ambiguity-and-requirements.md)).
+- **The missing input**: if the figure the task actually needs is not in the data you have, say so and stop, or show the answer parameterized on it. Never let the nearest available number stand in ([verification.md](../references/verification.md)): a price from another customer or market is not this one's cost, however similar the file looks.
 
 ## Phase 1 — Build the analysis in checkable steps
 
@@ -50,3 +51,4 @@ Before believing your own output, attack it:
 - **The decimal costume.** Six significant figures on a number built from assumptions worth ±20%.
 - **The unexplained jump, shipped.** The anomaly presented as insight without the trace that separates insight from bug.
 - **The one-off artifact.** An answer no one can regenerate; next month's identical question starts from zero.
+- **The proxy substitution.** The required cost was missing, so another party's price became the floor. Name the gap; never borrow figures across parties or markets.

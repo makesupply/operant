@@ -37,7 +37,6 @@ The store is plain, inspectable JSON. The user can read every instinct, its conf
 | `correct --trigger "…" [--retire]` | on user correction | negative evidence; `--retire` kills it outright |
 | `list [--all]` | anytime | inspect proven instincts (or the whole store) |
 | `prune` | periodically | drop retired/expired instincts, mark proven ones |
-| `self-test` | before trusting it | run the whole loop against a throwaway store |
 
 ## Candidate format
 

@@ -16,6 +16,7 @@ The last minutes of a session determine how much of it survives. Run this before
 - [ ] **State for next session** — where things stand, what's next, open questions — written somewhere a cold start will find it?
 - [ ] Updates went into **existing** notes where they exist (no contradictory twins created); anything now known false, corrected or deleted?
 - [ ] Project's own logging conventions honored (daily note, changelog, UPDATES section — whatever the project prescribes)?
+- [ ] Shared append-only records (the daily log, a ledger) written through the project's designated append helper with the date from its date authority — never a whole-file write, never a hand-derived date or weekday? (The project overlay in SKILL.md names the helper.)
 
 ## The final message
 

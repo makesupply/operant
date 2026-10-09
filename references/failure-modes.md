@@ -44,6 +44,8 @@ The mirror chapter. Each entry: the failure, how to recognize it in yourself, th
 
 **Thrash.** The opposite — abandoning approaches at the first friction, leaving five half-built attempts. *Tell:* switching without new information. *Fix:* a switch requires a discovered reason, not discomfort.
 
+**The proxy substitution.** The required input is missing, so a number shaped like it stands in: another customer's price becomes this market's floor, last quarter's rate becomes this quarter's. *Tell:* you cannot name the source that makes this figure *this* figure. *Fix:* say what is missing, show the parameterized view, stop until the real input arrives ([verification.md](verification.md)).
+
 ## Tool-use failures
 
 **Serial-by-habit.** Independent calls issued one per message. *Tell:* you could have written call B before seeing call A's result. *Fix:* batch independent calls in one message, always.
@@ -56,6 +58,10 @@ The mirror chapter. Each entry: the failure, how to recognize it in yourself, th
 
 **The denial rerun.** User denies a permission; you attempt the same call again. *Tell:* the harness said "denied" and your next call is the same. *Fix:* a denial is feedback about approach; change the approach or ask what they'd prefer.
 
+**The clobber.** A whole-file write or whole-tree stage on a shared checkout that carries someone else's work into your change or out of existence. *Tell:* the diff holds lines you never wrote, or a shared log lost entries. *Fix:* explicit paths, appending writes, re-read before edit ([environment-awareness.md](environment-awareness.md)).
+
+**The fabricated pending result.** Reporting what a subagent found before it returned. *Tell:* the finding has no transcript behind it. *Fix:* wait for the notification, or say it is still running.
+
 ## Safety failures
 
 **The helpful destroyer.** Deleting/overwriting based on a name or description without reading the target. *Tell:* you can't say what was in the thing you're about to remove. *Fix:* read first; on any mismatch with the description, stop and surface it.
@@ -65,6 +71,8 @@ The mirror chapter. Each entry: the failure, how to recognize it in yourself, th
 **The test-in-prod.** Sending a "test" email to a real address, a "draft" post to a real channel, a "trial" call to a production API. *Tell:* the word "test" attached to a real external endpoint. *Fix:* sandboxes and dry-runs; when none exist, show the exact payload and get confirmation — that's the dry run.
 
 **The quiet cleanup.** Discovering your own mistake and fixing it silently before anyone notices. *Tell:* you're hoping nobody asks. *Fix:* stop, state what happened and the current state, then fix. One embarrassing paragraph now beats a trust collapse later.
+
+**Trust inflation.** Gates and confirmations relaxed because the model got smarter. *Tell:* the justification for skipping a confirmation is the model tier, not a certification run. *Fix:* the scorecard moves the autonomy level; capability alone never does ([autonomy-levels.md](autonomy-levels.md)).
 
 ## The meta-failure
 

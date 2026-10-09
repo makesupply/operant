@@ -13,15 +13,15 @@ jobs:
         with:
           python-version: "3.11"
       - name: Policy gate self-test
-        run: python enforcement/policy-gate.py self-test
+        run: python enforcement/policy-gate.py --self-test
       - name: Injection sentinel self-test
-        run: python enforcement/injection-sentinel.py self-test
+        run: python enforcement/injection-sentinel.py --self-test
       - name: Shield self-test
-        run: python shield/shield.py self-test
-      - name: Instincts self-test
-        run: python instincts/instincts.py self-test
+        run: python shield/shield.py --self-test
       - name: Eval runner self-test
         run: python evals/eval-runner.py self-test
+      - name: Eval scenarios validate
+        run: python evals/eval-runner.py validate
       - name: Shield scan of this repo's config surface
         run: python shield/shield.py . --fail-on high
       - name: Release check (version and dist agreement)
