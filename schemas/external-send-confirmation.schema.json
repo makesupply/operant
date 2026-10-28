@@ -37,6 +37,23 @@
       "type": "string",
       "description": "A key that makes a retry safe. Prevents duplicate sends after a partial failure (retry-after-side-effect rule)."
     },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "description": "Where the recipient count, segment, and current state were read from: the literal command or tool call, run before this confirmation." },
+        "read_back_values": {
+          "type": "object",
+          "description": "The current values as read from the live platform (live recipient count, sending account, schedule, current budget or status), keyed by field."
+        },
+        "not_verified": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What could not be read before asking, stated as 'not verified', never 'not applicable'."
+        }
+      },
+      "description": "The before-picture the human needs to judge the send. Optional in the schema; references/safety.md asks for it on every outward confirmation."
+    },
     "authorization": {
       "type": "string",
       "enum": ["awaiting", "granted-this-send", "standing-written", "denied"],

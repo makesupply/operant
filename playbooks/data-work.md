@@ -1,54 +1,66 @@
 # Playbook: Data Work
+*Read when: the deliverable is a number, a table, a chart, or a report built from data, whether produced once or on a cadence.*
 
-**Goal:** numbers the user can act on without re-checking them. Data work has a property code doesn't: a wrong result usually *looks identical* to a right one. The whole discipline is building the cross-checks that make wrongness visible.
+**Goal:** numbers the user can act on without re-checking them. A wrong result usually looks identical to a right one, so the whole discipline is building the cross-checks that make wrongness visible.
 
-## Phase 0 — Meet the data before computing on it
+## Phase 0: Meet the data before computing on it
 
-Never run the real analysis as your first query. First, profile:
+Never run the real analysis as your first query. Profile first.
 
-- **Shape and size**: row counts, column types, date ranges. Does the row count match expectations? (A "two-year dataset" with 3 months of rows is a finding before it's a bug.)
-- **Nulls, duplicates, and denominators**: how many nulls per key column, are IDs actually unique, what does one row *mean* (one order? one line-item? one event?). Getting the grain wrong is the most expensive mistake in analysis — every downstream aggregate inherits it.
-- **The weird tails**: min/max of every numeric you'll use. Negative quantities, 1970 timestamps, and 9999 placeholder values announce themselves in thirty seconds here and poison averages silently forever after.
-- **The sensitivity screen**: does this data contain people — names, emails, addresses, purchase or health details? Then minimization applies to everything downstream ([security-posture.md](../references/security-posture.md)): profile with aggregates and masked samples (`c***@gmail.com`, `customer 4471`) rather than pasting real records into the transcript or report, and keep individuals out of examples, fixtures, and memory. The analysis needs distributions, not identities — except where the deliverable is explicitly about named individuals, which stays in the deliverable and nowhere else.
-- **Semantics from the source, not the column name**: `revenue` — gross or net? refunds included? which currency? If a data dictionary or owner exists, check; if not, state your reading as an assumption ([ambiguity-and-requirements.md](../references/ambiguity-and-requirements.md)).
-- **The missing input**: if the figure the task actually needs is not in the data you have, say so and stop, or show the answer parameterized on it. Never let the nearest available number stand in ([verification.md](../references/verification.md)): a price from another customer or market is not this one's cost, however similar the file looks.
+- **Shape, size, and period**: row counts, column types, date ranges, and whether the current period is complete. A month-to-date pull dressed up as a monthly total is the most common false number in reporting.
+- **Grain, nulls, and duplicates**: what one row means, whether IDs are unique, how many nulls sit in each key column. Getting the grain wrong is the most expensive mistake, because every downstream aggregate inherits it.
+- **Units and encoding**: currency, cents against dollars, the timezone of every timestamp. Mixed UTC and local time is wrong on every daily boundary.
+- **The weird tails**: minimum and maximum of every numeric you will use. Negative quantities, 1970 timestamps, and 9999 placeholders announce themselves here and poison averages silently later.
+- **The sensitivity screen.** If the data describes people, minimization applies downstream, per [security-posture.md](../references/security-posture.md): profile with aggregates and masked samples such as `customer 4471`, and keep individuals out of examples, fixtures, and memory.
+- **Semantics from the source, not the column name.** Is `revenue` gross or net? Check the owner or the data dictionary; otherwise state your reading as an assumption, per [ambiguity-and-requirements.md](../references/ambiguity-and-requirements.md).
+- **The missing input.** If the figure the task needs is not in the data you have, say so and stop, or show the answer parameterized on it. Never let the nearest available number stand in, per [verification.md](../references/verification.md).
 
-## Phase 1 — Build the analysis in checkable steps
+## Phase 1: Build the analysis in checkable steps
 
-- **Small verified steps, intermediate results inspected** — the analysis analogue of running tests between refactor steps. Compute the base table, *look at it* (a sample, a count, a spot-check row you can verify by hand), then aggregate.
-- **Keep one reconciliation total alive end-to-end**: the grand total at the raw layer should survive every join and filter, or every loss should be accounted for ("dropped 340 rows: 290 test accounts, 50 nulls in the join key"). A join that silently duplicates or drops rows is the classic invisible error — row counts before and after every join, as a habit.
-- **Filters are decisions — log them**: every WHERE clause and exclusion goes in the methodology note with its reason. "Excluding refunds" changes the answer; the reader must know.
-- **Prefer reproducible over manual**: a script/query that regenerates the result beats hand-edited spreadsheet steps — next month's version of this request is a re-run, not a re-derivation. Manual touch-ups, if unavoidable, get listed.
+- **Small verified steps.** Compute the base table, inspect a sample, a count, and a spot-check row you can verify by hand, then aggregate.
+- **Keep one reconciliation total alive end to end.** The grand total at the raw layer survives every join and filter, or every loss is accounted for by count and reason. Count rows before and after every join.
+- **Filters are decisions, so log them.** Every exclusion goes in the methodology note with its reason.
+- **Prefer reproducible over manual.** A script that regenerates the result beats hand-edited spreadsheet steps, because next month's request is a re-run.
 
-## Phase 2 — The plausibility gauntlet
+## Phase 2: Reconcile, then run the plausibility gauntlet
 
-Before believing your own output, attack it:
+Before believing your own output, tie it to something independent and then attack it.
 
-- **Order-of-magnitude check against an independent anchor**: does the computed revenue roughly match what the finance dashboard says? Does per-unit anything fall in a sane range? A number with no external anchor is a number on faith.
-- **Sum the parts against the whole**: segments should total ~100%; the breakdown should sum to the topline it decomposes.
-- **Perturb it**: does the trend survive removing the single biggest account/day/outlier? A conclusion that one row creates is a fact about that row, not a trend.
-- **Explain the surprises before shipping them**: a 40% week-over-week jump is a data bug until traced to a cause (a real event, a backfill, a duplicated load). "Interesting result" and "pipeline error" look identical at the aggregate level — the trace is what distinguishes them. If it survives the trace, *lead* with it; if unexplained, report it as unexplained, never silently smooth it.
+- **Reconcile to a known control first**: the source system's own total, the ledger, or last period's figure. If your number and the control disagree, one of you is wrong and the result cannot ship until you know which. Report the tie-out: "revenue $412K, ties to the billing dashboard within $80 on refund rounding."
+- **Magnitude and shape**: does it sit in a sane range against per-unit economics and prior periods, does the breakdown sum to its topline, and does the trend survive removing the single biggest account, day, or outlier?
+- **Explain the surprises before shipping them.** A 40 percent week-over-week jump is a pipeline bug until traced to a real event, a backfill, or a duplicated load. If it survives the trace, lead with it; if not, report it as unexplained and never smooth it.
 
-## Phase 3 — Report numbers honestly
+## Phase 3: Report numbers honestly
 
-- **Answer first** ([communication.md](../references/communication.md)), with its precision matched to its reliability: "roughly $410K (±5%, unreconciled refunds)" beats "$412,847.23" when the pipeline doesn't support cents-level trust. False precision is a lie told with decimals.
-- **Comparisons need denominators and baselines**: "up 12%" — versus what period, on what base size? Percentages on small denominators get flagged ("+50%, but n=4").
-- **The methodology footnote, always**: source, date range, filters, grain, known exclusions. Three lines that make the number auditable and next quarter's re-run consistent.
-- **Charts follow the same honesty**: axes from zero unless deviation is the story (then say so), no truncated-axis drama, labels a cold reader can parse.
-- **State what would change the answer**: "this assumes refunds land in the order month; if they land in refund month, Q2 drops ~3%."
+- **Answer first**, per [communication.md](../references/communication.md), with precision matched to reliability. "Roughly $410K, plus or minus 5 percent on unreconciled refunds" beats "$412,847.23" when the pipeline does not support cents-level trust.
+- **Separate measured from modelled.** Label the estimates, and never let a projection inherit the authority of a measurement.
+- **Comparisons carry denominators and baselines.** "Up 12 percent" names both periods and the base size; "+50 percent, but n=4" gets its flag.
+- **Every metric traces to its query.** Keep the exact filter, date range, and definition with the report, so a challenge next week is answered by the query, not your memory.
+- **The methodology footnote, always**: source, date range, filters, grain, known exclusions. Charts keep axes from zero unless the deviation is the story.
+- **State what would change the answer**: "this assumes refunds land in the order month; if they land in the refund month, Q2 drops about 3 percent."
+
+## When it ships on a cadence
+
+A scheduled report inherits the unattended discipline in [recurring-automation.md](recurring-automation.md). Two hazards are specific to reporting. Re-running for the same period must produce the same report, never a duplicate send or a doubled total. And the report must testify to its own inputs: if it ran on stale or partial data, the body says so instead of shipping a smaller number that reads as a real decline.
 
 ## Special cases
 
-- **Someone else's spreadsheet**: expect merged cells, hand-typed totals that don't match the rows, hidden columns, and a second header row. Reconcile any pre-existing totals against your recomputation *first* — a mismatch means you've misread the structure, and it's their layout, not your math, until proven otherwise.
-- **Joins across systems**: identity is never as shared as claimed. Sample the unmatched keys from both sides before trusting the match rate.
-- **Time**: timezones, week-start conventions, and partial current periods corrupt more comparisons than all other causes combined. "This week vs. last week" with today at 2pm included is a lie by construction — truncate to complete periods or footnote it.
+- **Someone else's spreadsheet.** Expect merged cells, hand-typed totals that disagree with the rows, hidden columns, and a second header row. Reconcile any pre-existing totals against your recomputation first; a mismatch means you misread the structure until proven otherwise.
+
+## Exit criteria
+
+- [ ] The data was profiled before the first aggregate: grain, period completeness, units, tails, sensitivity.
+- [ ] One reconciliation total survives end to end, or every loss is accounted for.
+- [ ] Every headline number ties to an independent control, and the tie-out is reported.
+- [ ] Every filter is in the methodology note; measured and modelled figures are labeled apart.
+- [ ] Every figure traces to a query that regenerates it.
+- [ ] No real personal record appears in the transcript, the report, or memory.
 
 ## Anti-patterns
 
-- **The blind aggregate.** GROUP BY on data never profiled; the placeholder 9999s are in the average now.
-- **The silent join fanout.** Row count tripled at step 3; every downstream number is 3× and nobody noticed.
-- **The convenient exclusion.** Filters that were never disclosed, discovered when someone else's total disagrees.
-- **The decimal costume.** Six significant figures on a number built from assumptions worth ±20%.
-- **The unexplained jump, shipped.** The anomaly presented as insight without the trace that separates insight from bug.
-- **The one-off artifact.** An answer no one can regenerate; next month's identical question starts from zero.
-- **The proxy substitution.** The required cost was missing, so another party's price became the floor. Name the gap; never borrow figures across parties or markets.
+- **The blind aggregate.** *Tell:* a GROUP BY on data never profiled; the 9999 placeholders are in the average. *Fix:* profile tails and grain first.
+- **The silent join fanout.** *Tell:* the row count tripled at step 3. *Fix:* count rows before and after every join.
+- **The unreconciled total.** *Tell:* a grand total shipped because it looked about right. *Fix:* tie it to a control before it leaves.
+- **The unexplained jump, shipped.** *Tell:* an anomaly presented as insight without the trace. *Fix:* trace it or report it as unexplained.
+- **The undisclosed partial.** *Tell:* a scheduled report ran on incomplete data and shipped the smaller number as real. *Fix:* fail loud or disclose it in the body.
+- **The proxy substitution.** *Tell:* the required cost was missing, so another party's price became the floor. *Fix:* name the gap; never borrow figures across parties or markets.

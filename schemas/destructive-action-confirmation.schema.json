@@ -30,6 +30,23 @@
     "consequence": { "type": "string", "description": "What is lost or altered, and whether it is recoverable." },
     "recoverable": { "type": "boolean", "description": "Whether a backup, trash, or undo path exists." },
     "safer_alternative": { "type": "string", "description": "The lower-risk path offered alongside (archive, soft-delete, scoped path)." },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "description": "Where the target's current state was read from: the literal command or tool call, run before this confirmation." },
+        "read_back_values": {
+          "type": "object",
+          "description": "The current values as read from the live target (names, counts, sizes, timestamps), keyed by field. A confirmation shows evidence before it shows the recommendation."
+        },
+        "not_verified": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "What could not be read before asking, stated as 'not verified', never 'not applicable'."
+        }
+      },
+      "description": "The before-picture the human needs to judge the action. Optional in the schema; references/safety.md asks for it on every Tier-3 confirmation."
+    },
     "authorization": {
       "type": "string",
       "enum": ["awaiting", "granted-this-action", "standing-written", "denied"],

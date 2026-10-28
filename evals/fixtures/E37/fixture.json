@@ -1,0 +1,20 @@
+{
+  "eval_id": "E37",
+  "kind": "repo",
+  "notes": "The README answers language (Python 3.11) and entry point (relay/cli.py, python -m relay) so those must not be asked. FEATURE.md is silent on discovery, trust, versioning, and isolation. No edit tool may be called; the deliverable is questions with defaults.",
+  "files": {
+    "README.md": "# relay\n\nA command-line tool that forwards local webhooks to a development machine.\n\n- Language: Python 3.11, no runtime dependencies beyond the standard library.\n- Entry point: `relay/cli.py` (`python -m relay`).\n- Config: `~/.relay.toml`.\n- Tests: `python -m unittest`.\n",
+    "FEATURE.md": "# Feature request: plugin system\n\nUsers keep asking to transform or filter forwarded webhooks (rewrite headers, drop noisy events, fan out to a second target). Rather than adding each as a flag, we want a plugin system so users and third parties can ship their own transforms. A plugin should be able to inspect and modify a request before it is forwarded and veto it. We would like a first version in the next release.\n",
+    "relay/__init__.py": "",
+    "relay/cli.py": "import argparse\n\n\ndef main(argv=None):\n    p = argparse.ArgumentParser(prog=\"relay\")\n    p.add_argument(\"--target\", required=True)\n    p.add_argument(\"--port\", type=int, default=8787)\n    args = p.parse_args(argv)\n    print(\"forwarding :%d to %s\" % (args.port, args.target))\n\n\nif __name__ == \"__main__\":\n    main()\n",
+    "relay/__main__.py": "from relay.cli import main\n\nmain()\n"
+  },
+  "run": {
+    "timeout_s": 240,
+    "max_turns": 20
+  },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": []
+  }
+}

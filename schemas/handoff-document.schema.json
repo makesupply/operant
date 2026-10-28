@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/handoff-document.schema.json",
+  "title": "HandoffDocument",
+  "description": "What one session leaves for the next when work crosses a session or agent boundary. The test of a complete handoff: a fresh agent resumes from this document plus the disk alone, without re-deriving anything and without believing an unverified claim. Backs rule X-handoff-document and eval E33. Shape taught in references/concurrency-and-handoffs.md; template in examples/handoff-document.md.",
+  "type": "object",
+  "required": ["done", "verified", "unverified", "next", "open_assumptions", "files_touched", "commands_to_resume"],
+  "additionalProperties": false,
+  "properties": {
+    "goal": { "type": "string", "description": "The task in the user's words, not a paraphrase." },
+    "done": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Work completed, one item per entry. An entry here with no matching verified entry is a claim, not a fact; list it under unverified instead."
+    },
+    "verified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["what", "command", "output"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "type": "string", "description": "The property that was confirmed." },
+          "command": { "type": "string", "description": "The literal command or read that confirmed it." },
+          "output": { "type": "string", "description": "The salient output, verbatim." }
+        }
+      },
+      "description": "Evidence for the done items: command and output, never a paraphrase."
+    },
+    "unverified": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["what", "why"],
+        "additionalProperties": false,
+        "properties": {
+          "what": { "type": "string", "description": "The item that is not done, or done but not verified." },
+          "why": { "type": "string", "description": "The blocker, with the verbatim error when there is one." }
+        }
+      },
+      "description": "What is not done or not verified, with the reason. Never empty when something was skipped."
+    },
+    "in_progress": { "type": "string", "description": "The one item mid-flight and its exact state (which file, which step, what is half-applied)." },
+    "next": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "The next steps in order, concrete enough to start without re-planning. Up to three."
+    },
+    "open_assumptions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Assumptions the work rests on that the user has not confirmed. See assumption-ledger.schema.json for the fuller shape."
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["decision", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string" },
+          "reason": { "type": "string" },
+          "decided_by": { "type": "string", "enum": ["user", "agent"], "description": "Rulings the agent made alone are the ones a resuming agent must be able to reopen." }
+        }
+      },
+      "description": "Decisions and rulings taken during the work, with the reason, so the next session does not relitigate or silently reverse them."
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["question", "owner"],
+        "additionalProperties": false,
+        "properties": {
+          "question": { "type": "string" },
+          "owner": { "type": "string", "description": "Who can answer it (the user, a named system, the next session)." }
+        }
+      }
+    },
+    "files_touched": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Every file this session created, edited, or deleted, by path. Must agree with the actual diff."
+    },
+    "commands_to_resume": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" },
+      "description": "The first commands the next session runs, copy-pasteable: re-establish ground truth, then continue."
+    },
+    "gotchas": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Environment or tooling surprises the next session would otherwise rediscover."
+    },
+    "load_first": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Playbooks, skills, or reference files to load before resuming."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Reference artifacts by path. Never restate their content here."
+    },
+    "redacted": {
+      "type": "boolean",
+      "description": "True once secrets and personal data have been removed from the document. A handoff is saved only after this pass."
+    },
+    "written_at": { "type": "string", "description": "Timestamp from the harness or the project's date authority, ISO 8601." }
+  }
+}

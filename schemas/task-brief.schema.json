@@ -33,7 +33,17 @@
     "constraints": {
       "type": "array",
       "items": { "type": "string" },
-      "description": "Hard limits: deadline, budget, format, tools allowed/forbidden, style rules."
+      "description": "Hard limits: deadline, budget, format, style rules. Tool and path limits go in allowed_tools and denied_paths so a harness can enforce them."
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The only tools the agent may use, by name (for example Read, Grep, Glob, and one Write to the deliverable). Least privilege: a read-and-summarize task gets read-only tools. Omitted means the harness default applies, which is the failure mode rule X-least-privilege-brief exists to prevent."
+    },
+    "denied_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Paths or globs the agent must not read or write (secrets/, deploy/, another task's files). Stated in the brief and, where the harness supports it, enforced by a permission rule."
     },
     "done_criteria": {
       "type": "array",

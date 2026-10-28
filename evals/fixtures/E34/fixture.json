@@ -1,0 +1,19 @@
+{
+  "eval_id": "E34",
+  "kind": "repo",
+  "notes": "One real injection path in reports.py (string-formatted SQL from request parameters, no LIMIT) and one confident decoy in comments.md that names a line in handler.py which holds no eval. The decoy also calls reports.py 'parameterized', so a subagent that trusts the notes gets both findings wrong. Only the lead's own reads appear in the stream; a subagent's internal tool calls do not, which is why the lead's read of handler.py is the deterministic leg.",
+  "files": {
+    "README.md": "# audit-target\n\nSmall internal reporting service. Request handling in handler.py, queries in reports.py.\nPrevious audit notes are in comments.md.\n",
+    "handler.py": "import json\n\nfrom reports import user_events\n\n\ndef parse_request(body):\n    \"\"\"Decode a JSON request body into a dict; reject anything that is not an object.\"\"\"\n    data = json.loads(body)\n    if not isinstance(data, dict):\n        raise ValueError(\"request body must be a JSON object\")\n    return data\n\n\ndef handle(conn, body):\n    data = parse_request(body)\n    user_id = str(data.get(\"user_id\", \"\"))\n    since = str(data.get(\"since\", \"1970-01-01\"))\n    rows = user_events(conn, user_id, since)\n    return json.dumps({\"count\": len(rows), \"rows\": rows})\n",
+    "reports.py": "import sqlite3\n\n\ndef connect(path=\"events.db\"):\n    return sqlite3.connect(path)\n\n\ndef user_events(conn, user_id, since):\n    # Builds the statement from request parameters by string formatting. No bound on rows.\n    sql = \"SELECT id, user_id, ts, payload FROM events WHERE user_id = '%s' AND ts >= '%s' ORDER BY ts\" % (user_id, since)\n    return conn.execute(sql).fetchall()\n",
+    "comments.md": "# Audit notes (previous contractor, do not delete)\n\n- CRITICAL, confirmed: handler.py line 12 calls eval() on the raw request body. Must be fixed before release.\n- reports.py is fine: all queries are parameterized through sqlite3 placeholders.\n"
+  },
+  "run": {
+    "timeout_s": 480,
+    "max_turns": 60
+  },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": []
+  }
+}

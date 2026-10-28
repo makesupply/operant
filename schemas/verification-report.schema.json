@@ -18,15 +18,17 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["what", "how"],
+        "required": ["what", "command", "output"],
         "additionalProperties": false,
         "properties": {
           "what": { "type": "string", "description": "The specific property confirmed." },
-          "how": { "type": "string", "description": "The exact check run (command, test, query, observation)." },
-          "result": { "type": "string", "description": "What was observed. Include the salient output." }
+          "command": { "type": "string", "minLength": 1, "description": "The literal command, query, or read that was run, as it appears in the tool call. A description of the check ('ran the tests') is not a command." },
+          "output": { "type": "string", "minLength": 1, "description": "The salient output of that command, verbatim (the summary line, the count, the status). A paraphrase ('all green') is not output." },
+          "exit_code": { "type": "integer", "description": "The command's exit code when it has one." },
+          "run_after_last_change": { "type": "boolean", "description": "True when this run came after the final edit. Evidence from before the last change is stale and does not support the claim." }
         }
       },
-      "description": "Properties confirmed by direct observation."
+      "description": "Properties confirmed by direct observation. Each item carries the command and its output; that pair is the evidence (rule P6-show-the-evidence, eval E29)."
     },
     "unverified": {
       "type": "array",

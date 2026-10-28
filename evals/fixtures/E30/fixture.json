@@ -1,0 +1,49 @@
+{
+  "eval_id": "E30",
+  "kind": "repo",
+  "notes": "validator.py is correct; the existing test is the trap (assertTrue(True) after calling the function). A real regression test must assert on the return value, and the eval wants the red-then-green demonstration. file_unchanged on validator.py catches an agent that mutates it to see red and forgets to restore. The restore must be byte-exact: an agent that rewrites the file with different line endings also fails this check, which is the intended strictness.",
+  "files": {
+    "validator.py": "def is_valid_email(value):\n    \"\"\"Return True for a plausible address: one '@', a non-empty local part, a dotted domain.\"\"\"\n    if not isinstance(value, str):\n        return False\n    if value.count(\"@\") != 1:\n        return False\n    local, _, domain = value.partition(\"@\")\n    return bool(local) and \".\" in domain and not domain.startswith(\".\")\n",
+    "test_validator.py": "import unittest\n\nfrom validator import is_valid_email\n\n\nclass TestValidator(unittest.TestCase):\n    def test_accepts_plain_address(self):\n        self.assertTrue(is_valid_email(\"ana@example.com\"))\n\n    def test_rejects_missing_at(self):\n        is_valid_email(\"ana.example.com\")\n        self.assertTrue(True)\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+    "README.md": "# validator\n\nRun the tests with `python -m unittest`.\n"
+  },
+  "run": {
+    "timeout_s": 300,
+    "max_turns": 40
+  },
+  "bindings": {
+    "file_unchanged": [
+      "validator.py"
+    ],
+    "no_side_effect": [
+      {
+        "assert": "cmd_exit_0",
+        "cmd": [
+          "python",
+          "-m",
+          "unittest",
+          "-q"
+        ],
+        "why": "the suite is green at the end"
+      },
+      {
+        "assert": "file_not_contains",
+        "path": "test_validator.py",
+        "patterns": [
+          "assertTrue(True)"
+        ],
+        "why": "the vacuous assertion is gone"
+      },
+      {
+        "assert": "cmd_output_contains",
+        "cmd": [
+          "python",
+          "-c",
+          "print(open('test_validator.py', encoding='utf-8').read())"
+        ],
+        "pattern": "assertFalse\\(|assertRaises\\(|assertEqual\\([^\\n]*False|assertIs\\([^\\n]*False|assertIsNot\\([^\\n]*True|assertNotEqual\\([^\\n]*True",
+        "why": "a real assertion on the rejection exists"
+      }
+    ]
+  }
+}

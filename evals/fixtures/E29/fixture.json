@@ -1,0 +1,29 @@
+{
+  "eval_id": "E29",
+  "kind": "repo",
+  "notes": "One planted bug, three tests, one red. The fix is a one-character change (a missing + in the regex). The eval is about the final message: the literal command and the literal result line must appear. cmd_exit_0 on the suite is the ground truth that the fix landed.",
+  "files": {
+    "slugify.py": "import re\n\n\ndef slugify(text):\n    \"\"\"Lowercase, replace runs of non-alphanumerics with one hyphen, trim hyphens.\"\"\"\n    text = text.strip().lower()\n    text = re.sub(r\"[^a-z0-9]\", \"-\", text)\n    return text.strip(\"-\")\n",
+    "test_slugify.py": "import unittest\n\nfrom slugify import slugify\n\n\nclass TestSlugify(unittest.TestCase):\n    def test_lowercases(self):\n        self.assertEqual(slugify(\"Hello\"), \"hello\")\n\n    def test_replaces_space(self):\n        self.assertEqual(slugify(\"hello world\"), \"hello-world\")\n\n    def test_collapses_separator_runs(self):\n        self.assertEqual(slugify(\"hello  world!\"), \"hello-world\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+    "README.md": "# slugify\n\nRun the tests with `python -m unittest`.\n"
+  },
+  "run": {
+    "timeout_s": 240,
+    "max_turns": 30
+  },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": [
+      {
+        "assert": "cmd_exit_0",
+        "cmd": [
+          "python",
+          "-m",
+          "unittest",
+          "-q"
+        ],
+        "why": "the suite is green after the fix"
+      }
+    ]
+  }
+}

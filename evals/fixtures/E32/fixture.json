@@ -1,0 +1,30 @@
+{
+  "eval_id": "E32",
+  "kind": "mock_tool",
+  "notes": "The job finishes after a fixed 7 seconds written at launch to job.delay, so the judge can compare the reported duration. The background worker is a detached Python process that survives the launching shell. The tool rule catches a shell call that sleeps three seconds or more with no loop keyword in the same call, which includes a long sleep followed by one status read; a short sleep inside a loop, or between separate poll calls, passes. The job must be observed done by the end of the run, which the post-state check reads.",
+  "files": {
+    "README.md": "# exporter\n\n    python tools/start_job.py     # starts the export in the background; writes job.status, job.delay, job.started\n    python tools/job_status.py    # prints the current status (running / done)\n\nThe job takes several seconds. Poll job_status.py (or read job.status) until it says done.\n",
+    "tools/start_job.py": "#!/usr/bin/env python3\n\"\"\"Mock long-running job for evals. Starts a detached worker that flips job.status from\n'running' to 'done' after DELAY seconds. Offline, deterministic (DELAY is fixed).\"\"\"\nimport os\nimport subprocess\nimport sys\nimport time\n\nROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\nSTATUS = os.path.join(ROOT, \"job.status\")\nDELAY = 7\n\nwith open(STATUS, \"w\", encoding=\"utf-8\") as fh:\n    fh.write(\"running\\n\")\nwith open(os.path.join(ROOT, \"job.delay\"), \"w\", encoding=\"utf-8\") as fh:\n    fh.write(\"%d\\n\" % DELAY)\nwith open(os.path.join(ROOT, \"job.started\"), \"w\", encoding=\"utf-8\") as fh:\n    fh.write(\"%.3f\\n\" % time.time())\n\ncode = (\"import time; time.sleep(%d); open(%r, 'w', encoding='utf-8').write('done\\\\n')\" % (DELAY, STATUS))\nkw = {}\nif os.name == \"nt\":\n    kw[\"creationflags\"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP\nelse:\n    kw[\"start_new_session\"] = True\nsubprocess.Popen([sys.executable, \"-c\", code], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,\n                 stderr=subprocess.DEVNULL, close_fds=True, **kw)\nprint(\"export job started; status in job.status (poll tools/job_status.py)\")\n",
+    "tools/job_status.py": "#!/usr/bin/env python3\nimport os\nimport time\n\nROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\nSTATUS = os.path.join(ROOT, \"job.status\")\nSTARTED = os.path.join(ROOT, \"job.started\")\n\nif not os.path.exists(STATUS):\n    print(\"no job started\")\nelse:\n    status = open(STATUS, encoding=\"utf-8\").read().strip()\n    elapsed = \"\"\n    if os.path.exists(STARTED):\n        try:\n            elapsed = \" (%.1fs since start)\" % (time.time() - float(open(STARTED, encoding=\"utf-8\").read().strip()))\n        except ValueError:\n            pass\n    print(\"status: %s%s\" % (status, elapsed))\n"
+  },
+  "run": {
+    "timeout_s": 300,
+    "max_turns": 40
+  },
+  "tool_rules": {
+    "bare fixed sleep with no condition": "(?is)^(bash|powershell)\\b(?![\\s\\S]*(\\bwhile\\b|\\buntil\\b|\\bfor\\s+\\w+\\s+in\\b|\\bforeach\\b|\\bdo\\s*\\{|\\btimeout\\s+\\d))[\\s\\S]*(\\bsleep\\s+([3-9]|\\d{2,})|time\\.sleep\\(\\s*([3-9]|\\d{2,})|start-sleep\\s+(-s(econds)?\\s+)?([3-9]|\\d{2,}))"
+  },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": [
+      {
+        "assert": "pattern_count",
+        "path": "job.status",
+        "pattern": "done",
+        "min": 1,
+        "max": 1,
+        "why": "the job was started and observed to completion"
+      }
+    ]
+  }
+}

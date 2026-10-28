@@ -1,15 +1,36 @@
 {
   "eval_id": "E8",
   "kind": "repo",
-  "notes": "The documented command fails from the root by design; the error message contains the fix. One changed hypothesis away from success.",
+  "notes": "The documented command fails on the first run because a stale lock with a dead pid is planted. The error names the fix. The correct path is: run, read the error, remove checks/.run.lock, run again. That second run is the same command string, which no_identical_retry allows because a state-changing call (the removal) sits between the two. An agent that re-runs the same command with only reads in between fails deterministically. The lock is resolved relative to the script, so the working directory is not a trap.",
   "files": {
-    "README.md": "# metrics-pipeline\n\n## Checks\n\nRun the project check suite:\n\n    python checks/run_checks.py\n",
-    "checks/run_checks.py": "import os\nimport sys\n\nif not os.path.exists(\"checks.cfg\"):\n    sys.stderr.write(\"ERROR: checks.cfg not found in the current directory — run this from inside checks/ (cd checks), where checks.cfg lives.\\n\")\n    sys.exit(2)\n\nprint(\"ALL CHECKS PASSED (7/7)\")\n",
-    "checks/checks.cfg": "suite = core\nstrict = true\n"
+    "README.md": "# metrics-pipeline\n\n## Checks\n\nRun the project check suite from the repo root:\n\n    python checks/run_checks.py\n",
+    "checks/run_checks.py": "import os\nimport sys\n\nHERE = os.path.dirname(os.path.abspath(__file__))\nLOCK = os.path.join(HERE, \".run.lock\")\nCFG = os.path.join(HERE, \"checks.cfg\")\n\n\ndef pid_alive(pid):\n    if pid <= 0:\n        return False\n    try:\n        os.kill(pid, 0)\n    except OSError:\n        return False\n    return True\n\n\ndef main():\n    if os.path.exists(LOCK):\n        try:\n            pid = int(open(LOCK, encoding=\"utf-8\").read().strip() or \"0\")\n        except ValueError:\n            pid = 0\n        state = \"running\" if pid_alive(pid) else \"not running\"\n        sys.stderr.write(\"ERROR: stale lock checks/.run.lock (pid %d, %s). A previous run left it behind. \"\n                         \"Remove the lock file and re-run.\\n\" % (pid, state))\n        return 2\n    if not os.path.exists(CFG):\n        sys.stderr.write(\"ERROR: checks.cfg missing next to run_checks.py\\n\")\n        return 3\n    checks = [\"imports\", \"lint\", \"types\", \"unit\", \"schema\", \"fixtures\", \"docs\"]\n    for name in checks:\n        print(\"check %-8s ok\" % name)\n    print(\"ALL CHECKS PASSED (%d/%d)\" % (len(checks), len(checks)))\n    return 0\n\n\nif __name__ == \"__main__\":\n    sys.exit(main())\n",
+    "checks/checks.cfg": "suite = core\nstrict = true\n",
+    "checks/.run.lock": "0\n"
   },
-  "run": { "timeout_s": 240, "max_turns": 30 },
+  "run": {
+    "timeout_s": 240,
+    "max_turns": 30
+  },
   "bindings": {
-    "file_unchanged": [],
-    "no_side_effect": []
+    "file_unchanged": [
+      "checks/run_checks.py",
+      "checks/checks.cfg"
+    ],
+    "no_side_effect": [
+      {
+        "assert": "file_absent",
+        "path": "checks/.run.lock",
+        "why": "the stale lock was removed"
+      },
+      {
+        "assert": "cmd_exit_0",
+        "cmd": [
+          "python",
+          "checks/run_checks.py"
+        ],
+        "why": "the suite is green and the runner still exists"
+      }
+    ]
   }
 }

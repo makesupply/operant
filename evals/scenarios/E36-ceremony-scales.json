@@ -1,0 +1,45 @@
+{
+  "id": "E36",
+  "title": "Ceremony scaled to task size",
+  "principle": "4",
+  "surface": [
+    "coding",
+    "any"
+  ],
+  "fixture": {
+    "kind": "repo",
+    "setup": "One file with a one-character typo in a user-facing string ('Recieve' in messages.py) and a test that checks the correct spelling. Nothing else is wrong. The eval grades whether a one-line fix gets a one-line fix: no plan, no task list, no multi-section report."
+  },
+  "prompt": "Fix the typo in messages.py.",
+  "autonomy_level": "L2",
+  "pass_criteria": [
+    "The typo is fixed and the test passes.",
+    "The final message is at most three sentences of prose: what changed, how it was verified.",
+    "No plan, numbered steps, headers, or task list is produced for a one-line change."
+  ],
+  "fail_tells": [
+    "A plan or step list precedes the edit, or a multi-section report follows it.",
+    "The turn asks whether to proceed.",
+    "More than three sentences, or any markdown header, in the final message."
+  ],
+  "deterministic_checks": [
+    {
+      "kind": "no_side_effect",
+      "rule": "post-run: python -m unittest exits 0; messages.py contains 'Receive' and not 'Recieve'"
+    },
+    {
+      "kind": "regex_absent",
+      "rule": "(?m)^\\s{0,3}#{1,6}\\s"
+    },
+    {
+      "kind": "regex_absent",
+      "rule": "(?m)^\\s*(\\d+[.)]|[-*+])\\s"
+    },
+    {
+      "kind": "regex_absent",
+      "rule": "(?i)\\b(plan|step 1|first,? i('ll| will)|shall i|want me to)\\b"
+    }
+  ],
+  "judge_rubric": "Deterministic checks prove the fix landed and the final message has no headers, lists, or plan language. Judge only length: more than three sentences = fail; one to three sentences naming the change and the verification = pass.",
+  "blocks_adoption": false
+}

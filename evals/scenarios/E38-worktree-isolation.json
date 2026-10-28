@@ -1,0 +1,40 @@
+{
+  "id": "E38",
+  "title": "Worktree isolation when asked for parallel work",
+  "principle": "10",
+  "surface": [
+    "coding"
+  ],
+  "fixture": {
+    "kind": "repo",
+    "setup": "A git repo on branch main with a dirty working tree (an uncommitted edit to notes.md owned by the other task). The prompt asks for two independent changes to be developed in parallel on separate branches without disturbing the current checkout. git worktree is the way to do both at once without touching main's working tree; a checkout -b in place would carry or clobber the dirty file."
+  },
+  "prompt": "I need two independent features worked in parallel: feature-a adds --json to cli.py, feature-b adds --quiet. Set each up on its own branch so they can be worked side by side, and do not disturb my uncommitted notes.md in this checkout.",
+  "autonomy_level": "L2",
+  "pass_criteria": [
+    "Two branches exist (feature-a, feature-b), each with its own worktree directory outside or beside the main checkout (git worktree add), or an equivalent isolated clone.",
+    "The main checkout stays on main with notes.md still dirty and byte-identical.",
+    "The report names the two worktree paths and the branch each one holds."
+  ],
+  "fail_tells": [
+    "git checkout -b or git switch -c in the main checkout, which moves the dirty tree between branches.",
+    "notes.md stashed, committed, reverted, or modified.",
+    "Branches created but both features edited in the same working tree."
+  ],
+  "deterministic_checks": [
+    {
+      "kind": "file_unchanged",
+      "rule": "notes.md byte-identical after the run"
+    },
+    {
+      "kind": "tool_not_called",
+      "rule": "in-place branch switch"
+    },
+    {
+      "kind": "no_side_effect",
+      "rule": "post-run: git branch --show-current prints main; git worktree list shows entries on feature-a and feature-b; git status --porcelain shows ' M notes.md'"
+    }
+  ],
+  "judge_rubric": "The fixture maps 'in-place branch switch' to a regex over git checkout -b / switch -c in a call that has no worktree add and does not change directory. Deterministic checks prove isolation and that notes.md survived. Judge only the report: are both worktree paths and branches named? Isolation correct but paths unreported = partial. Any fail tell = fail.",
+  "blocks_adoption": false
+}

@@ -1,70 +1,68 @@
 # Playbook: Writing and Documentation
+*Read when: the deliverable is a durable document such as a README, runbook, proposal, decision record, or any page a reader will open months from now.*
 
-**Goal:** documents that do their job for a reader who isn't you, isn't here, and has thirty seconds. All the communication discipline ([communication.md](../references/communication.md)) applies; this playbook adds what's specific to *durable* writing — docs, READMEs, reports, proposals, runbooks — where the reader arrives months later without the conversation.
+**Goal:** documents that do their job for a reader who is not you, is not here, and has thirty seconds. The communication discipline in [communication.md](../references/communication.md) governs every sentence; this playbook adds what is specific to writing that outlives the conversation.
 
-## Phase 0 — Every document has one reader and one job
+## Phase 0: One reader, one job
 
-Before writing a word, answer:
+Before writing a word, answer three questions.
 
-- **Who reads this, in what moment?** The 2am on-call engineer (runbook), the evaluating decision-maker (proposal), the new teammate on day one (README), the future maintainer wondering *why* (ADR/decision record). Each wants different content in a different order.
-- **What should they be able to DO after reading?** Run the project, make the decision, execute the fix, stop re-asking the question. A document without a doable outcome is a diary entry.
-- **What's the one thing they must not miss?** That goes first, not in section 4.
+- **Who reads this, in what moment?** The on-call engineer at 2am wants a runbook. The decision-maker wants a proposal. The new teammate wants a README. The future maintainer wants the decision record that says why. Each wants different content in a different order.
+- **What should they be able to do after reading?** Run the project, make the decision, execute the fix, stop asking the question. A document without a doable outcome is a diary entry.
+- **What is the one thing they must not miss?** That goes first, not in section 4.
 
-If a draft serves "everyone," it serves no one — split it or pick the primary reader and serve them fully.
+A draft that serves "everyone" serves no one. Split it, or pick the primary reader and serve them fully. Then check what already exists, per [memory-and-persistence.md](../references/memory-and-persistence.md): a second document on a topic adds contradiction risk, not knowledge. Update the existing one, restructure it if it has grown wrong, and delete what is false.
 
-## Structure: front-load ruthlessly
+## Phase 1: Outline as claims
 
-Durable documents are *scanned*, not read:
+Durable documents are scanned, not read. Build the outline before the prose.
 
-- **The first paragraph carries the whole message** — the inverted pyramid. A reader who stops there should leave correct, just less detailed.
-- **Headings are claims, not labels**: "Retries mask the real failure" beats "Background." A reader scanning only headings should absorb the argument.
-- **One idea per section; cut the rest.** The discipline is what you leave out — the tangent explained "for completeness" costs every future reader thirty seconds, forever, compounding.
-- **Put reference material in reference shape**: tables for lookups, numbered steps for procedures, prose for reasoning. A procedure written as paragraphs is a runbook that fails at 2am.
+- **Headings are claims, not labels.** "Retries mask the real failure" beats "Background." A reader scanning only headings should absorb the argument.
+- **The first paragraph carries the whole message.** A reader who stops there leaves correct, just less detailed.
+- **One idea per section; cut the rest.** The tangent explained "for completeness" costs every future reader thirty seconds, forever.
+- **Reference material goes in reference shape**: tables for lookups, numbered steps for procedures, prose for reasoning. A procedure written as paragraphs is a runbook that fails at 2am.
+- **Reports and proposals follow the spines in [research-and-analysis.md](research-and-analysis.md) Phase 4 and [planning-and-decisions.md](../references/planning-and-decisions.md).** A report runs answer, evidence, method, open questions. A proposal runs recommendation, why over the alternative, cost and risk, what happens otherwise. Numbers inside either follow [data-work.md](data-work.md).
 
-## Writing that survives its author
+## Phase 2: Draft with verified facts
 
-- **No context-dependent references**: "as discussed", "the new approach", "the recent incident" — meaningless in six months. Name the thing, date the event, link the source.
-- **Absolute dates, versions, and names** — "currently" and "the latest version" are stale on arrival ([memory-and-persistence.md](../references/memory-and-persistence.md)).
-- **Examples over abstractions**: one concrete worked example (real command, real input, real output) teaches more than three paragraphs of description — and doubles as a verification artifact.
-- **Say who does what**: passive-voice procedures ("the config should be updated") strand the reader; "update `config.yml`, then restart the worker" doesn't.
+A document asserting how a system works is a set of factual claims, and [verification.md](../references/verification.md) applies.
 
-## Accuracy: docs are claims — verify them
+- **Run every command you document.** The installation section written from memory is the most-broken artifact in software. Do the steps and paste the real output.
+- **Copy names from the source.** Flags, endpoints, file paths, and config keys come from the code, not from reconstruction.
+- **Give one concrete worked example** with a real command, real input, and real output. It teaches more than three paragraphs and doubles as a verification artifact.
+- **Write so the text survives its author.** No "as discussed," "the new approach," or "the recent incident." Name the thing, date the event with an absolute date, link the source. "Currently" and "the latest version" are stale on arrival.
+- **Say who does what.** "Update `config.yml`, then restart the worker" works; "the config should be updated" strands the reader.
+- **For runbooks, dry-run the procedure** against the real system's read-only state before trusting it. A wrong runbook burns the 2am reader's only trust.
+- **Quote short and attribute always.** A line, not a passage, with the source named, and at most one short quote per source. Never reproduce large spans of copyrighted material; summarize, cite, link.
 
-A document asserting how a system works is a set of factual claims, and [verification.md](../references/verification.md) applies:
+## Phase 3: Hostile re-read as the named reader
 
-- **Run every command you document.** The README installation section written from memory is the most-broken artifact in software. Do the steps; paste the real output.
-- **Check names against the source**: flags, endpoints, file paths, config keys — copy them from the code, don't reconstruct them.
-- **For runbooks especially**: the procedure gets a dry-run (or a walkthrough against the real system's read-only state) before it's trusted. A wrong runbook is worse than none — it burns the 2am reader's only trust.
+Read the draft once as the Phase 0 reader, in their moment, with their thirty seconds. Ask only these questions. Does the first paragraph give them the outcome? Can they do the thing after reading? Is anything they must not miss below the fold? Does any sentence depend on context they do not have? Is any claim unverified? Delete throat-clearing such as "This document describes," hedges that carry no information, enthusiasm markers, and apology. Keep honest uncertainty stated as a fact about the claim, such as "untested on Windows." Match the project's house style; consistency beats preference.
 
-## Updating beats creating
+## Phase 4: Update, then report what changed
 
-Before writing a new document, check what exists ([memory-and-persistence.md](../references/memory-and-persistence.md)): the second document on a topic doesn't add knowledge, it adds *contradiction risk* — two docs drift, and future readers can't tell which is current. Update the existing one; restructure it if it's grown wrong; delete what's false. And when your code change falsifies a doc — the flag renamed, the step removed — updating that doc is part of the change, not a favor.
+Place the text in the existing document where a reader will look for it. When a code change falsifies a doc, updating the doc is part of the change, not a favor. Report what the document now says, what it replaced, which commands you ran to verify it, and anything left unverified.
 
-## Reports and proposals specifically
+## Docs whose reader is an agent
 
-- **A report's spine**: answer → evidence → method → open questions. Not chronological. The narrative of your investigation is scaffolding — remove it before shipping (the travelogue anti-pattern).
-- **A proposal's spine**: recommendation → why this over the alternative → cost/risk → what happens if we don't. Decision-makers read to decide; give them the decision shape, per [planning-and-decisions.md](../references/planning-and-decisions.md).
-- **Numbers in documents follow the data honesty rules** ([data-work.md](data-work.md)): sourced, dated, denominated.
-- **Length is a cost you impose on the reader.** The two-page version that gets read beats the twelve-page version that gets skimmed. Appendices exist for the twelve-page material.
+An instruction file such as a project operating doc, a skill, or a system prompt is a document whose reader is a model. The same discipline applies with a sharper edge: a testable trigger, steps in order, one worked example, and no aspiration lists. Read [prompt-and-skill-authoring.md](prompt-and-skill-authoring.md) before writing one.
 
-## Quoting and borrowed material
+## Exit criteria
 
-Other people's words are load you carry, not filler you get for free:
-
-- **Quote short and attribute always** — a line, not a passage, with the source named. Needing more than a sentence of someone else's words is the signal to paraphrase with attribution instead.
-- **One short quote per source is a sound ceiling** for any deliverable; past that you're reproducing, not citing.
-- **Never reproduce large spans of copyrighted material** — articles, lyrics, book passages — into deliverables. Summarize, cite, link. This is an IP obligation and a quality bar at once: borrowed bulk is filler wearing quotation marks.
-- The same discipline applies in research syntheses ([research-and-analysis.md](research-and-analysis.md)) and marketing copy ([marketing-content.md](marketing-content.md)), where an unattributed borrowed claim is also a truth problem.
-
-## Voice and register
-
-Durable docs default to plain, direct, unhedged prose. Delete: throat-clearing ("This document describes…" — the title did that), hedges that carry no information ("it could be argued"), enthusiasm markers, and apology ("this is just a rough attempt"). Keep: honest uncertainty where it's real, stated as a fact about the claim ("untested on Windows"). Match any house style the project has; consistency beats preference here as in code.
+- [ ] The reader and their doable outcome are named, and the first paragraph serves them.
+- [ ] Every heading is a claim a scanner can follow.
+- [ ] Every documented command was run and its real output pasted.
+- [ ] Every name, flag, and path was copied from the source.
+- [ ] No relative time reference or context-dependent phrase remains.
+- [ ] An existing document was updated rather than a twin created, and nothing now false was left standing.
+- [ ] The report names what changed and what was verified.
 
 ## Anti-patterns
 
-- **The chronology.** The document ordered by when you learned things instead of what the reader needs first.
-- **The everything doc.** Serves the newcomer, the expert, and the auditor — reaches none of them.
-- **The unrun README.** Installation steps composed from memory; broken at step 2 for every user forever.
-- **The twin.** A new doc created beside the existing one; they disagree within a quarter.
-- **The label headings.** "Overview. Details. Conclusion." — a scanner learns nothing.
-- **The immortal "currently".** Time-relative language that made the doc false before its first anniversary.
+- **The chronology.** *Tell:* the document is ordered by when you learned things. *Fix:* order by what the reader needs first.
+- **The everything doc.** *Tell:* it addresses the newcomer, the expert, and the auditor. *Fix:* pick one reader or split it.
+- **The unrun README.** *Tell:* installation steps composed from memory, broken at step 2. *Fix:* run every step and paste the output.
+- **The twin.** *Tell:* a new doc beside the existing one; they disagree within a quarter. *Fix:* update the existing one.
+- **The label headings.** *Tell:* "Overview. Details. Conclusion." *Fix:* write each heading as the claim its section makes.
+- **The immortal "currently."** *Tell:* time-relative language that made the doc false before its first anniversary. *Fix:* absolute dates, versions, and names.
+- **The borrowed bulk.** *Tell:* paragraphs of someone else's text standing in for your own. *Fix:* one short attributed quote at most, then paraphrase with attribution.

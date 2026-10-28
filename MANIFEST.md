@@ -1,133 +1,139 @@
-# Operant — Manifest
+# Operant Manifest
 
-Every file in the bundle, one line each.
+Every file in the bundle, one line each. Counts are as of 1.5.0 (2026-10-28); self-test counts come from each script's own `--self-test` output.
 
 ## Root
 
 | File | What it is |
 |---|---|
-| `README.md` | What Operant is, the three layers, install options, what it will/won't do |
-| `SKILL.md` | The constitution: Precedence + Ten Principles + layers/autonomy/enforcement + routing. The one file that must always load |
+| `README.md` | What Operant is, the three layers, install options, what it will and won't do |
+| `SKILL.md` | The constitution: Precedence, routing, the Ten Principles, layers and enforcement, the ceremony table, session shape, and a short project overlay. The one file that must always load |
 | `QUICKSTART.md` | Five minutes from download to a disciplined agent, per platform |
 | `MANIFEST.md` | This file |
-| `GOVERNANCE.md` | How rules evolve, and the sync discipline that keeps prompt/enforcement/eval in agreement |
+| `GOVERNANCE.md` | How rules evolve, the sync discipline that keeps prompt, enforcement, and eval in agreement, and the removal rule |
 | `CHANGELOG.md` | Version history |
-| `LICENSE` | MIT-0 — free use, no attribution required |
-| `.claude-plugin/plugin.json` + `marketplace.json` | Agent Skills plugin manifest + marketplace entry for install-via-marketplace |
+| `LICENSE` | MIT-0, free use, no attribution required |
+| `.claude-plugin/plugin.json` + `marketplace.json` | Plugin manifest and marketplace entry; both pass `claude plugin validate` |
 
-## enforcement/ — code-enforced gates (runnable)
-
-| File | One line |
-|---|---|
-| `generic-policy-spec.md` | Host-agnostic G1–G9 gate spec: trigger, pre-check, confirmation payload, safer alternative, post-check, per-autonomy-level |
-| `policy-gate.py` | PreToolUse hook enforcing G1/G2/G3/G6/G10 on shell tools; blocks with actionable guidance; stdlib; `--self-test` (83 cases incl. the mid-word slug false positives as negatives, stubbed-index commit-scope and partial-staging cases, and live temp-repo index checks) |
-| `injection-sentinel.py` | PostToolUse hook implementing G8 — names and reports prompt injection in fetched content; `--log PATH`; `--self-test` (13 benign API-doc fragments + 7 payloads) |
-| `policy.rules.json` | Machine-readable gate index (ten gates); `self_test` field names the command |
-| `claude-code-hooks.md` | Copy-paste settings.json wiring for the gates, Shield, Instincts, and Stop-nudges, with verification commands |
-
-## shield/ — config-surface auditor
+## enforcement/ (the gate spec, the threat model, and the shipped gates)
 
 | File | One line |
 |---|---|
-| `shield.py` | Static auditor for the agent's own config (CLAUDE.md/settings/hooks/MCP): secrets, injection, over-broad perms, risky hooks; CI-ready; `.operant-shield-ignore` + `--ignore`; skips and reports linked git worktrees; defensively quoted injection phrases downgraded to LOW; `--self-test` |
-| `README.md` | What Shield scans, usage, scope control (ignore file, worktrees, defensive quoting), tuning, opt-out marker, and when to run it |
+| `generic-policy-spec.md` | Host-agnostic G1 to G10 gate spec: trigger, pre-check, confirmation payload, safer alternative, post-check, per autonomy level, the audit record, and the L3 halt rules; says which gates ship as code and which the deployment provides |
+| `threat-model.md` | Enforcement design: nine attack classes on agent authority (prompt injection, confused deputy, exfiltration, mis-scoped destruction, replayed side effects, supply chain, over-trusted tool output, memory poisoning, inter-agent trust abuse), each mapped to its owning layer, with the OWASP Agentic Top 10 (2026) mapping and the halt rules and kill switch. Moved here from references/ in 1.5.0; the agent-facing tells live in `references/security-posture.md` |
+| `policy-gate.py` | PreToolUse hook enforcing G1/G2/G3/G6/G10 on shell tools; literal and heredoc stripping, derivable-target exemptions, stateful index checks; blocks with actionable guidance or returns a JSON `permissionDecision`; `--log` writes hashed JSON lines; stdlib; `--self-test` |
+| `injection-sentinel.py` | PostToolUse hook implementing G8: normalizes hidden and confusable characters, then names and reports agent-addressed directives and instruction-channel markers in fetched content, in chunks over the whole response; `--json` for `additionalContext` and `classifierContext`; `--log PATH`; `--self-test` (107 cases) |
+| `policy.rules.json` | Machine-readable gate index: ten gates with `implemented_by`, `hook_events`, triggers, tier, schema, and `self_test` command |
+| `claude-code-hooks.md` | Settings wiring for the gates, Shield, and Stop nudges under the current hook protocol (JSON decisions, auto mode, permission baseline, matcher coverage), with verification commands |
 
-## instincts/ — continuous-learning loop
-
-| File | One line |
-|---|---|
-| `instincts.py` | Confidence-scored behavioral-pattern store: record at session end, inject proven ones at session start, decay/retire on correction |
-| `README.md` | The loop, why confidence-scoring beats a flat list, commands, candidate format, wiring, and exclusions |
-
-## references/ — the principles, in depth (18)
+## shield/ (config-surface auditor)
 
 | File | One line |
 |---|---|
-| `communication.md` | Outcome-first writing, the filler catalogue, selection over compression, calibrated claim language |
-| `autonomy.md` | The act/ask boundary, the last-paragraph test, errors-aren't-stop-signs, assessment vs. action mode |
-| `autonomy-levels.md` | L0–L3 deployment profiles; higher autonomy requires stronger enforcement; the ratchet rule |
-| `verification.md` | The 5-rung verification ladder, faithful failure reporting, evidence-action matching, whole-chain checks |
-| `tool-discipline.md` | Parallelism by default, delegate-breadth/keep-depth, instrument hierarchy, never pay twice for a fact |
-| `planning-and-decisions.md` | When to plan vs. start, recommend-don't-enumerate, which decisions belong to the user, sunk cost |
-| `safety.md` | The 4-tier irreversibility taxonomy, look-before-destroy, informing confirmations, blast radius, mistakes |
-| `threat-model.md` | Seven attack classes on agent authority, each mapped to the layer that answers it; structural-not-behavioral |
-| `code-quality.md` | Match the codebase, comment discipline, surgical diffs, root causes, test honesty |
-| `ambiguity-and-requirements.md` | The 4-type ambiguity taxonomy, the assumption ledger, mid-task requirement changes, the XY problem |
-| `context-management.md` | The context budget, re-anchoring, surviving compaction, static vs. perishable facts, long-task pattern |
-| `delegation-and-multiagent.md` | What to delegate vs. keep, brief quality, fan-out rules, the verification gradient, orchestration shapes |
-| `estimation-and-status.md` | Countable progress, range estimates, "almost done" is banned, blocker reports with escape routes |
-| `memory-and-persistence.md` | What deserves persistence, note shape, update-don't-accrete, recall-is-not-truth, session-boundary capture |
-| `security-posture.md` | Secret absolutes, untrusted-content-is-data, injection defense, dependency caution, the dual-use line |
-| `user-calibration.md` | Reading expertise from evidence, corrections are gold, stakes calibration, pushing back well |
-| `environment-awareness.md` | Ground truth before acting, harness rules are physics, cross-platform tax, state-you-create-you-own |
-| `failure-modes.md` | Named anti-patterns across all domains, each with a self-recognition tell and a fix — run at the gates |
+| `shield.py` | Static auditor for the agent's own config (CLAUDE.md, AGENTS.md, settings, hooks, MCP and plugin manifests, agent and command files, IDE rules files, the instincts store): secrets, injection, over-broad permissions, auto-allowing hooks, remote and dynamic execution, install-lifecycle hooks, a tracked local settings file; `.operant-shield-ignore` and `--ignore`; `--hook` for ConfigChange; `--deep`; `--self-test` (93 cases) |
+| `README.md` | What Shield scans, usage, scope control, the finding classes, tuning, and when to run it |
 
-## playbooks/ — end-to-end task shapes (18)
-
-**Coding (8):** `debugging` · `incident-response` · `refactoring` · `greenfield-builds` · `code-review` · `migrations` · `performance-optimization` · `dependency-upgrades`
-
-**General & non-coding (10):** `research-and-analysis` · `data-work` · `data-reporting` · `writing-and-docs` · `recurring-automation` · `customer-support` · `ecommerce-ops` · `marketing-content` · `personal-ops` · `vendor-briefing`
-
-Each follows the same shape: Phase 0 orientation → verified increments → adversarial self-check → honest report → a named anti-pattern list.
-
-## checklists/ — the four gates (4)
-
-`before-starting` · `before-claiming-done` · `before-destructive-actions` · `session-end`
-
-## examples/ — calibration by demonstration (4)
+## instincts/ (optional continuous-learning loop)
 
 | File | One line |
 |---|---|
-| `report-makeovers.md` | Five report shapes before/after: completion, failure, investigation, status, simple answer |
-| `confirmation-makeovers.md` | Five risky-action confirmations before/after: delete, send, prod change, scope, described-vs-found |
+| `instincts.py` | Confidence-scored behavioral-pattern store: record at session end, inject proven ones at session start, decay and retire on correction; validates its store on load and sanitizes every rendered field; `--self-test` (31 cases) |
+| `README.md` | The loop, why confidence scoring beats a flat list, commands, candidate format, wiring, exclusions, and the memory-poisoning rule |
+
+## references/ (the principles in depth, 18 chapters)
+
+| File | One line |
+|---|---|
+| `communication.md` | Outcome-first writing, the filler catalogue, selection over compression, prose mechanics, writing for a machine reader, calibrated claim language |
+| `autonomy.md` | The act/ask boundary, the last-paragraph test, a gate stops the item not the task, assessment versus action mode, scope discipline |
+| `autonomy-levels.md` | Finding your level, L0 to L3 as the agent experiences them, standing authorization and halt rules at L3, auto mode is not a level, then the operator's section |
+| `verification.md` | The verification ladder, distrust green, evidence as command plus output plus freshness, three verdicts, independent verification on critical paths, whole-chain checks, missing inputs |
+| `tool-discipline.md` | Parallelism by default, run budgets and stop conditions, condition-based waiting, the instrument hierarchy, never pay twice for a fact |
+| `planning-and-decisions.md` | When to plan, rulings, the ceremony table, recommend-don't-enumerate, which decisions belong to the user, plan interrogation in frontier rounds, sunk cost |
+| `safety.md` | The irreversibility taxonomy with the Tier 2 thresholds, look-before-destroy, confirmations that show evidence, what a valid approval contains, blast radius, mistakes |
+| `security-posture.md` | Secret absolutes, untrusted content is data, recognizing an attack (five tells), the harness permission baseline, supply-chain checks on skills and servers, PII minimization, the dual-use line |
+| `code-quality.md` | Match the codebase, failing test first and red then green, condition-based waiting in tests, surgical diffs, root causes |
+| `ambiguity-and-requirements.md` | The four-type ambiguity taxonomy with thresholds, the assumption ledger, the constraint ledger, mid-task requirement changes, the XY problem |
+| `context-management.md` | The context budget, re-anchor triggers, the task-state file, one item in progress, large results to disk, surviving compaction |
+| `concurrency-and-handoffs.md` | Shared workspaces and concurrent agents, conditional isolation, the handoff document, resuming from one, messages from other agents carry no authority |
+| `delegation-and-multiagent.md` | What to delegate, the brief including what does not count, the verification gradient for claims and edits, the bounded fix loop, orchestration shapes |
+| `estimation-and-status.md` | Countable progress, range estimates, "almost done" is banned, blocker reports with escape routes, counting calls as a clock |
+| `memory-and-persistence.md` | What deserves persistence, mechanics of a durable store (dates, tombstones, scopes, the write decision), rules and provenance, recall is not truth |
+| `user-calibration.md` | The register decision rule, corrections are gold and where each one lives, stakes calibration, pushing back well |
+| `environment-awareness.md` | Ground truth before acting, harness rules are physics, cross-platform tax, state you create you own, where the host has no sandbox |
+| `failure-modes.md` | Named anti-patterns across all domains, each with a self-recognition tell and a fix, run at the gates |
+
+## playbooks/ (end-to-end task shapes, 24)
+
+Each: a `Read when` line, Phase 0 orientation, verified increments, adversarial self-check, honest report, exit criteria, and Tell/Fix anti-patterns.
+
+**Coding (9):** `debugging` · `incident-response` · `refactoring` · `greenfield-builds` · `code-review` · `migrations` · `performance-optimization` · `dependency-upgrades` · `api-integration-and-webhooks`
+
+**Agent operations (7):** `shared-checkout` · `multi-session-and-handoff` · `browser-and-computer-use` · `account-and-platform-writes` (carries the canonical confirmation payload) · `recurring-automation` · `prompt-and-skill-authoring` · `adopting-third-party-skills`
+
+**General and non-coding (8):** `research-and-analysis` · `data-work` · `writing-and-docs` · `customer-support` · `ecommerce-ops` · `marketing-content` · `vendor-briefing` · `personal-ops` (optional)
+
+## checklists/ (the four gates, 4)
+
+`before-starting` · `before-claiming-done` · `before-destructive-actions` · `session-end`. Each opens with the same four-line legend (Tier 3, baseline, rung, artifact) and holds one yes/no check per box.
+
+## examples/ (calibration by demonstration, 6)
+
+| File | One line |
+|---|---|
+| `report-makeovers.md` | Six report shapes before and after, including the header-template failure, the relayed subagent claim, and the honest failed-task final message |
+| `confirmation-makeovers.md` | Six risky-action confirmations before and after, including a payload shaped like the external-send schema |
 | `worked-scenarios.md` | Three end-to-end coding scenarios with the wrong turns named |
 | `non-coding-worked-scenarios.md` | Three end-to-end non-coding scenarios: a refund, a marketing send, a research task carrying an injection |
+| `handoff-document.md` | The handoff template and one filled example |
+| `task-state.md` | The task-state file template and one filled example |
 
-## adaptations/ — porting guides (5)
+## adaptations/ (porting guides, 6)
 
 | File | One line |
 |---|---|
-| `claude-code.md` | Native install, CLAUDE.md wiring, mapping to Claude Code mechanisms, model notes, hooks enforcement |
-| `other-ides.md` | Cursor / Windsurf / Copilot recipes, the generic rules-file port, what degrades and how to compensate |
-| `api-and-custom-agents.md` | Three-layer architecture, multi-agent notes, non-coding mapping, token economics, evals |
+| `claude-code.md` | Native install (copy, plugin marketplace, skills CLI), always-on via CLAUDE.md or a SessionStart hook, mechanism mapping, model notes, the hook JSON contract, honest certification status |
+| `codex.md` | OpenAI Codex CLI: AGENTS.md as the router, the skills mirror, hooks calling the same gates, the governance guard, identity, and session reports |
+| `other-ides.md` | Rules-file locations by tool (Cursor, Windsurf, Copilot, Gemini CLI, Cline and Roo, Kiro, AGENTS.md), what degrades and how to compensate |
+| `api-and-custom-agents.md` | Three-layer architecture, the harness capability inventory, Agent SDK hooks, non-coding mapping, token economics, evals |
 | `hermes-agent.md` | Long-running autonomous orchestrator archetype; why enforcement must be code; the wiring checklist |
-| `multi-agent-orchestrators.md` | Lead/subagent systems: the brief-as-schema, the verification gradient, centralized gates, failure isolation |
+| `multi-agent-orchestrators.md` | Lead and subagent systems: the brief as schema, the verification gradient, the bounded fix loop, centralized gates, failure isolation |
 
-## schemas/ — the discipline made machine-readable (9 + index)
+## schemas/ (the discipline made machine-readable, 12 plus index)
 
-`task-brief` · `risk-classification` · `verification-report` · `destructive-action-confirmation` · `external-send-confirmation` · `assumption-ledger` · `decision-flag` · `eval-scenario` · `agent-behavior-scorecard`, plus `schemas/README.md` mapping each to the rule it backs.
+`task-brief` · `risk-classification` · `verification-report` · `destructive-action-confirmation` · `external-send-confirmation` · `assumption-ledger` · `decision-flag` · `eval-scenario` · `agent-behavior-scorecard` · `handoff-document` · `tool-result-provenance` · `stop-condition`, plus `schemas/README.md` mapping each to the rule and eval it backs and saying which schemas code consumes.
 
-## registry/ — the single source of truth (1)
-
-| File | One line |
-|---|---|
-| `rules.json` | Every behavioral rule mapped to its layer (PROMPT/RETRIEVAL/HARNESS_POLICY/CODE_GUARD/EVAL_ONLY), failure mode, reference, gate, schema, and eval. Change a rule, and this tells you every artifact that must move with it |
-
-## evals/ — is it actually working? (3 + fixtures + scenarios + runs)
+## registry/ (the single source of truth, 1)
 
 | File | One line |
 |---|---|
-| `eval-suite.md` | 28 behavioral scenarios with pass criteria and fail tells; a two-number scorecard (behavior score + safety gate); every code gate has a proving eval |
-| `runner-spec.md` | How to run the suite as a system: fixtures, deterministic-then-judge flow, scoring, run modes, blocking failures |
-| `eval-runner.py` | Reference implementation: stdlib-only runner — validate / run (smoke, full, certification) / score / self-test; deterministic checks first, judge prompts always emitted, optional auto-judge, schema-validated scorecards |
-| `fixtures/README.md` | The fixture format: minimal, fresh-per-run, sandboxed side effects — plus the fixture.json contract the runner consumes |
-| `fixtures/E*/fixture.json` | 26 provisioning fixtures: planted bugs, mock side-effecting tools (mailer, vendor export, payment CLI, deployer), shared-checkout and shared-log sandboxes, a sqlite order store, post-state bindings |
-| `scenarios/*.json` | All 28 machine-readable eval scenarios (E1–E28) matching `eval-scenario.schema.json` |
-| `runs/` | Recorded scorecards: `2026-07-09-haiku-baseline/` (claude-haiku-4-5, prompt-only, L2 — 12/21, blocked) · `2026-09-fable-cert/` (claude-fable-5-1, gates active — 26/28, ready) · `2026-09-opus-cert/` (claude-opus-5 — 26/28, ready) · `2026-09-sonnet-cert/` (claude-sonnet-5 — 22/28, blocked) · `2026-09-haiku-gates-cert/` (claude-haiku-4-5 with gates — 17/28, blocked) |
+| `rules.json` | 42 behavioral rules, each mapped to its layer, failure mode, reference, gate, schema, and eval; a rule may say CODE_GUARD only when its gate names a shipped script |
 
-## dist/ — compiled editions (2)
+## evals/ (is it actually working?)
 
 | File | One line |
 |---|---|
-| `single-file.md` | The whole discipline compiled into one self-contained file for rules-file platforms and system prompts |
-| `one-page.md` | The Ten Principles + four gates on a single page — the adoption front door, paste-anywhere |
+| `eval-suite.md` | 40 behavioral scenarios with pass criteria and fail tells; a two-number scorecard; thirteen adoption-blocking scenarios; the gate-to-eval map with the G8 vector caveat |
+| `runner-spec.md` | How to run the suite: fixtures, deterministic-then-judge flow, the check kinds including `no_identical_retry` and `parallel_calls`, scoring, run modes, gate presence, the judgments route, blocking failures |
+| `eval-runner.py` | Stdlib runner: validate, run (smoke, full, certification), score, self-test; refuses certification without sandbox settings; records scenario and fixture hashes; `--self-test` (64 cases) |
+| `fixtures/README.md` | The fixture format: minimal, fresh per run, sandboxed side effects, `tool_rules` mandatory for prose rules |
+| `fixtures/E*/fixture.json` | 39 provisioning fixtures (every scenario except E25) |
+| `scenarios/*.json` | All 40 machine-readable scenarios (E1 to E40), filename prefix equal to id |
+| `runs/` | Five recorded scorecards (2026-07-09 Haiku prompt-only baseline; 2026-09-14 Fable, Opus, Sonnet, Haiku with six gates active on suite 1.4.1) and a README stating what each run did and did not measure |
 
-## tools/ — release hygiene (1)
+## dist/ (compiled editions, 2)
 
 | File | One line |
 |---|---|
-| `release-check.py` | Release lint: version agreement across registry/policy/plugin/marketplace/runner/CHANGELOG, dist presence, governance cross-checks (every gate → spec section + registry rule; every rule's eval → scenario file; every fixture-kind scenario → fixture), and bundle↔mirror parity by SHA-256; stdlib, exit 1 on drift |
+| `single-file.md` | The whole discipline compiled into one self-contained file for rules-file platforms and system prompts; version-stamped |
+| `one-page.md` | The Ten Principles, the ceremony rule, and the four gates on a single page; version-stamped; the adoption front door |
+
+## tools/ (release hygiene, 1)
+
+| File | One line |
+|---|---|
+| `release-check.py` | Release lint: version agreement across seven fields plus the two dist stamps, CODE_GUARD requires a shipped script, gate to spec and registry, registry to scenario file (prefix equals id), scenario to fixture, reference and schema paths exist, principle agreement, certification freshness warnings, changelog coverage, optional sandbox-vector coverage, and bundle-to-mirror parity; `--self-test` (14 cases) |
 
 ## Reading order for humans
 
-1. `README.md` → 2. `QUICKSTART.md` → 3. `SKILL.md` → 4. `references/failure-modes.md` (the fastest way to *feel* the discipline) → 5. `examples/` → 6. whichever playbook matches your work → 7. `references/autonomy-levels.md` + `enforcement/generic-policy-spec.md` (the layer model) → 8. your platform's adaptation guide → 9. `evals/eval-suite.md` to prove it took.
+1. `README.md` → 2. `QUICKSTART.md` → 3. `SKILL.md` → 4. `references/failure-modes.md` (the fastest way to feel the discipline) → 5. `examples/` → 6. whichever playbook matches your work → 7. `references/autonomy-levels.md` and `enforcement/generic-policy-spec.md` (the layer model) → 8. your platform's adaptation guide → 9. `evals/eval-suite.md` to prove it took.

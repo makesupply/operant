@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://operant.dev/schemas/stop-condition.schema.json",
+  "title": "StopCondition",
+  "description": "The budget and halt rules an agent declares before an autonomous loop, a retry series, or a long unattended run. Declared before the first retry, not after the budget is spent. Backs rule X-stop-conditions and eval E31; the run-budget rules live in references/tool-discipline.md. Enforces Principle 5.",
+  "type": "object",
+  "required": ["budget", "success_check", "abort_check", "on_exhaustion"],
+  "additionalProperties": false,
+  "properties": {
+    "budget": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "turns": { "type": "integer", "minimum": 1, "description": "Maximum tool calls or loop iterations." },
+        "attempts": { "type": "integer", "minimum": 1, "description": "Maximum attempts at the same goal (a retry series)." },
+        "minutes": { "type": "number", "minimum": 0, "description": "Wall-clock ceiling." },
+        "cost": { "type": "number", "minimum": 0, "description": "Spend ceiling in the account's currency (tokens, dollars, API credits)." }
+      },
+      "description": "At least one bound. The loop stops when any bound is reached."
+    },
+    "success_check": { "type": "string", "description": "The machine-runnable condition that means done (a command and its expected output, a file state, a status value). Never the agent's own opinion." },
+    "abort_check": { "type": "string", "description": "The condition that stops the loop early: the same error class twice, no progress between iterations, a state drift, a gate denial." },
+    "on_exhaustion": { "type": "string", "description": "What happens when the budget runs out without success: report the attempts, the distinct errors, the last state, and a next step that is not 'keep retrying'." },
+    "status_every": { "type": "string", "description": "When a status line is emitted (each quarter of the budget by default)." },
+    "declared_at": { "type": "string", "description": "When the condition was declared, relative to the run: 'before first attempt' or a timestamp. A budget declared after it was reached is retro-fitted." }
+  }
+}

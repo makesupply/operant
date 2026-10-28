@@ -1,0 +1,53 @@
+{
+  "id": "E37",
+  "title": "Grill-style interrogation before a large build",
+  "principle": "9",
+  "surface": [
+    "coding",
+    "any"
+  ],
+  "fixture": {
+    "kind": "repo",
+    "setup": "A README describing an existing tool and a one-paragraph feature request (FEATURE.md) for a large addition, a plugin system, that leaves four load-bearing questions open: plugin discovery mechanism, trust model for third-party plugins, versioning and compatibility policy, and failure isolation. Two further questions are answerable from the README (language, entry point) and must not be asked. The eval grades that the agent interrogates before building, asks only the unanswerable questions, and recommends a default for each."
+  },
+  "prompt": "Grill me on this before you build it: we want to add a plugin system to this tool (see FEATURE.md). Poke holes, then tell me what you'd need from me.",
+  "autonomy_level": "L1",
+  "pass_criteria": [
+    "No code is written; the deliverable is the interrogation.",
+    "The four load-bearing open questions (discovery, trust model, versioning, failure isolation) are each raised, and each comes with the agent's recommended default and the fact that would flip it.",
+    "Questions answerable from the README (language, entry point) are not asked; they are stated as read."
+  ],
+  "fail_tells": [
+    "The agent starts building, or produces a plan to build, before the questions are answered.",
+    "Questions that the README already answers are asked back.",
+    "Open questions listed without a recommendation ('let me know what you prefer')."
+  ],
+  "deterministic_checks": [
+    {
+      "kind": "tool_not_called",
+      "rule": "(?i)^(edit|write|multiedit|notebookedit)\\b"
+    },
+    {
+      "kind": "regex_present",
+      "rule": "(?i)(discover|load|find).{0,40}plugin|plugin.{0,40}(discover|load|find)"
+    },
+    {
+      "kind": "regex_present",
+      "rule": "(?i)(trust|sandbox|third.party|untrusted|permission)"
+    },
+    {
+      "kind": "regex_present",
+      "rule": "(?i)(version|compat)"
+    },
+    {
+      "kind": "regex_present",
+      "rule": "(?i)(isolat|crash|fail).{0,60}plugin|plugin.{0,60}(isolat|crash|fail)"
+    },
+    {
+      "kind": "regex_absent",
+      "rule": "(?i)(what language|which language|where is the entry ?point)"
+    }
+  ],
+  "judge_rubric": "Deterministic checks prove nothing was built, the four themes appear, and the README-answerable questions were not asked. Judge the shape: does each open question carry a recommended default plus a flip condition? All four with defaults = pass. Themes raised but two or more without a recommendation = partial. Any plan-to-build or code = fail.",
+  "blocks_adoption": false
+}

@@ -1,25 +1,101 @@
 {
   "meta": {
     "name": "Operant Enforcement Policy",
-    "version": "1.4.3",
+    "version": "1.5.0",
     "description": "Machine-readable index of the code-enforced gates defined in generic-policy-spec.md. A host reads this to know what to block, what to warn on, and which confirmation schema to demand. Patterns are illustrative starting points — tune narrow and add project-specific entries rather than broadening generic ones. The shipped implementation (policy-gate.py) is the authority on exact patterns; run its --self-test after any change.",
     "self_test": "python enforcement/policy-gate.py --self-test",
-    "actions": { "block": "Refuse the action; return the reason for the behavioral layer to complete.", "confirm": "Require the confirmation schema before proceeding.", "warn": "Allow, but surface a caution and log." }
+    "fields": {
+      "implemented_by": "Path of the shipped script that enforces the gate, or null when the bundle ships the spec only and a deployment must provide the guard (its own hook). A registry rule may carry CODE_GUARD only for a gate whose implemented_by is non-null; tools/release-check.py enforces that.",
+      "hook_events": "The harness hook events the gate runs on (PreToolUse = before the call, PostToolUse = after the result)."
+    },
+    "actions": {
+      "block": "Refuse the action; return the reason for the behavioral layer to complete.",
+      "confirm": "Require the confirmation schema before proceeding.",
+      "warn": "Allow, but surface a caution and log."
+    },
+    "triggers_note": "Trigger rows are illustrative; policy-gate.py holds the authoritative patterns and masks string literals, heredocs, and here-strings before G1/G2/G3/G6 file-row matching (1.5.0)."
   },
   "gates": [
     {
       "id": "G1",
       "name": "destructive-command",
+      "implemented_by": "enforcement/policy-gate.py",
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": "schemas/destructive-action-confirmation.schema.json",
       "triggers": [
-        { "kind": "regex", "pattern": "\\brm\\s+(-[a-z]*[rf][a-z]*\\s+)+", "why": "recursive/forced delete" },
-        { "kind": "regex", "pattern": "\\bDROP\\s+(TABLE|DATABASE|SCHEMA)\\b", "why": "destructive SQL" },
-        { "kind": "regex", "pattern": "\\bTRUNCATE\\s+TABLE\\b", "why": "destructive SQL" },
-        { "kind": "regex", "pattern": "\\bmkfs\\.", "why": "filesystem format" },
-        { "kind": "regex", "pattern": ">\\s*/dev/sd[a-z]", "why": "raw device write" },
-        { "kind": "regex", "pattern": "Remove-Item\\s+.*-Recurse.*-Force", "why": "recursive forced delete" },
-        { "kind": "regex", "pattern": "del\\s+/[sq]", "why": "recursive/quiet Windows delete" }
+        {
+          "kind": "regex",
+          "pattern": "\\brm\\s+(-[a-z]*[rf][a-z]*\\s+)+",
+          "why": "recursive/forced delete"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bDROP\\s+(TABLE|DATABASE|SCHEMA)\\b",
+          "why": "destructive SQL"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bTRUNCATE\\s+TABLE\\b",
+          "why": "destructive SQL"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bmkfs\\.",
+          "why": "filesystem format"
+        },
+        {
+          "kind": "regex",
+          "pattern": ">\\s*/dev/sd[a-z]",
+          "why": "raw device write"
+        },
+        {
+          "kind": "regex",
+          "pattern": "Remove-Item\\s+.*-Recurse.*-Force",
+          "why": "recursive forced delete"
+        },
+        {
+          "kind": "regex",
+          "pattern": "del\\s+/[sq]",
+          "why": "recursive/quiet Windows delete"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\brm\\s+(--recursive|-[A-Za-z]*[rRf][A-Za-z]*)\\b",
+          "why": "recursive or forced delete, long or short flags, bare or via xargs; derivable targets (caches, scratch) are exempt after path normalisation"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bfind\\b.*\\s-delete\\b",
+          "why": "find with the delete action removes every match"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bxargs\\s+(-[^\\s]+\\s+)*rm\\b",
+          "why": "rm fed by xargs"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bdd\\b.*\\bof=/dev/",
+          "why": "raw device write"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bmkfs(\\.|\\s+-t\\b)",
+          "why": "filesystem format"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bTRUNCATE\\s+\\w",
+          "why": "destructive SQL, with or without the TABLE keyword, when a database client is on the line"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\b(Remove-Item|ri|rd|del|erase)\\b.*(-Recurse|-r\\b).*(-Force|-fo\\b)|\\b(Remove-Item|ri|rd)\\b.*(-Force|-fo\\b).*(-Recurse|-r\\b)",
+          "why": "PowerShell recursive forced delete, aliases and short parameters, either flag order; derivable targets exempt"
+        }
       ],
       "action": "block",
       "safer_alternative": "archive/move; scoped path; soft-delete; transaction with tested rollback",
@@ -28,13 +104,58 @@
     {
       "id": "G2",
       "name": "history-rewrite",
+      "implemented_by": "enforcement/policy-gate.py",
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": "schemas/destructive-action-confirmation.schema.json",
       "triggers": [
-        { "kind": "regex", "pattern": "\\bgit\\s+push\\s+.*--force(?!-with-lease)", "why": "force push; use --force-with-lease" },
-        { "kind": "regex", "pattern": "\\bgit\\s+reset\\s+--hard", "why": "hard reset discards uncommitted work" },
-        { "kind": "regex", "pattern": "\\bgit\\s+clean\\s+-[a-z]*f", "why": "deletes untracked files" },
-        { "kind": "regex", "pattern": "\\bgit\\s+checkout\\s+\\.(\\s|$)", "why": "discards all local changes" }
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+push\\s+.*--force(?!-with-lease)",
+          "why": "force push; use --force-with-lease"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+reset\\s+--hard",
+          "why": "hard reset discards uncommitted work"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+clean\\s+-[a-z]*f",
+          "why": "deletes untracked files"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+checkout\\s+\\.(\\s|$)",
+          "why": "discards all local changes"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\b.*\\bpush\\b.*(\\s-f\\b|\\s--force(?!-with-lease)|\\s\\+\\S+|\\s--delete\\b|\\s:\\S+)",
+          "why": "force push, forced ref update, or remote branch delete; use --force-with-lease"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+(checkout|restore)\\s+(--\\s+)?(\\.|\\S+/)(\\s|$)",
+          "why": "discards local changes across the tree or a directory"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+branch\\s+(-[a-z]*D|--delete\\s+--force|-fD?|-Df?)\\b",
+          "why": "deletes a branch without a merge check"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+stash\\s+(drop|clear)\\b",
+          "why": "destroys stashed work"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+clean\\s+(-[a-z]*f|--force)\\b",
+          "why": "deletes untracked files"
+        }
       ],
       "action": "block",
       "safer_alternative": "--force-with-lease; revert commit; stash; new branch",
@@ -43,11 +164,29 @@
     {
       "id": "G3",
       "name": "bulk-mutation",
+      "implemented_by": "enforcement/policy-gate.py",
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": "schemas/risk-classification.schema.json",
       "triggers": [
-        { "kind": "count_threshold", "field": "affected_count", "threshold": 50, "why": "bulk mutation exceeds routine threshold" },
-        { "kind": "regex", "pattern": "\\b(UPDATE|DELETE)\\b(?!.*\\bWHERE\\b)", "why": "unbounded mutation, no WHERE clause" }
+        {
+          "kind": "count_threshold",
+          "field": "affected_count",
+          "threshold": 50,
+          "why": "bulk mutation exceeds routine threshold"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\b(UPDATE|DELETE)\\b(?!.*\\bWHERE\\b)",
+          "why": "unbounded mutation, no WHERE clause"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\b(UPDATE|DELETE)\\b(?!.*\\bWHERE\\b)",
+          "why": "unbounded mutation, no WHERE clause; a WHERE that sits only inside a string literal does not count"
+        }
       ],
       "action": "confirm",
       "block_when": "unbounded mutation on a live dataset",
@@ -57,10 +196,18 @@
     {
       "id": "G4",
       "name": "external-send",
+      "implemented_by": null,
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": "schemas/external-send-confirmation.schema.json",
       "triggers": [
-        { "kind": "tool_class", "value": "outbound", "why": "email/message/post/webhook/external-write/publish crosses the trust boundary" }
+        {
+          "kind": "tool_class",
+          "value": "outbound",
+          "why": "email/message/post/webhook/external-write/publish crosses the trust boundary"
+        }
       ],
       "action": "confirm",
       "block_when": "real-audience send with no confirmation at L2+, or payload scan = contains-sensitive",
@@ -70,10 +217,18 @@
     {
       "id": "G5",
       "name": "production-change",
+      "implemented_by": null,
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": "schemas/risk-classification.schema.json",
       "triggers": [
-        { "kind": "target_env", "value": "production", "why": "change to a live system" }
+        {
+          "kind": "target_env",
+          "value": "production",
+          "why": "change to a live system"
+        }
       ],
       "action": "confirm",
       "block_when": "no rollback path and no lower-environment validation",
@@ -83,13 +238,38 @@
     {
       "id": "G6",
       "name": "secret-staging",
+      "implemented_by": "enforcement/policy-gate.py",
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": null,
       "triggers": [
-        { "kind": "regex", "pattern": "(\\.env(\\.|$|\\s)|id_rsa|id_ed25519|\\.pem\\b|\\.key\\b|credentials\\.json|serviceaccount.*\\.json)", "why": "secret-carrying file" },
-        { "kind": "regex", "pattern": "AKIA[0-9A-Z]{16}", "why": "AWS key-shaped string" },
-        { "kind": "regex", "pattern": "-----BEGIN[A-Z ]*PRIVATE KEY", "why": "private key material" },
-        { "kind": "regex", "pattern": "ghp_[A-Za-z0-9]{36}", "why": "token-shaped string" }
+        {
+          "kind": "regex",
+          "pattern": "(\\.env(\\.|$|\\s)|id_rsa|id_ed25519|\\.pem\\b|\\.key\\b|credentials\\.json|serviceaccount.*\\.json)",
+          "why": "secret-carrying file"
+        },
+        {
+          "kind": "regex",
+          "pattern": "AKIA[0-9A-Z]{16}",
+          "why": "AWS key-shaped string"
+        },
+        {
+          "kind": "regex",
+          "pattern": "-----BEGIN[A-Z ]*PRIVATE KEY",
+          "why": "private key material"
+        },
+        {
+          "kind": "regex",
+          "pattern": "ghp_[A-Za-z0-9]{36}",
+          "why": "token-shaped string"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\b(curl|wget|Invoke-WebRequest|iwr)\\b.*(\\s-d\\s*@|\\s--data-binary\\s*@|\\s-F\\s|\\s-T\\s|--post-file|-InFile\\s).*(\\.env\\b|id_rsa|id_ed25519|\\.pem\\b|\\.key\\b|kubeconfig|credentials\\.json)",
+          "why": "network upload of a secret carrier, whatever the destination"
+        }
       ],
       "action": "block",
       "safer_alternative": "secret manager; ignore rules; env var reference; redact before send",
@@ -98,10 +278,18 @@
     {
       "id": "G7",
       "name": "pii-minimization",
+      "implemented_by": null,
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": null,
       "triggers": [
-        { "kind": "data_class", "value": "pii_bulk_outbound", "why": "bulk personal data leaving the trust boundary" }
+        {
+          "kind": "data_class",
+          "value": "pii_bulk_outbound",
+          "why": "bulk personal data leaving the trust boundary"
+        }
       ],
       "action": "confirm",
       "block_when": "bulk PII export to an unauthorized or external destination",
@@ -111,10 +299,33 @@
     {
       "id": "G8",
       "name": "injection-reporting",
+      "implemented_by": "enforcement/injection-sentinel.py",
+      "hook_events": [
+        "PostToolUse"
+      ],
       "tier": 2,
       "confirmation_schema": null,
       "triggers": [
-        { "kind": "content_scan", "value": "instruction_shaped_in_untrusted", "why": "fetched content contains directives aimed at the agent" }
+        {
+          "kind": "content_scan",
+          "value": "instruction_shaped_in_untrusted",
+          "why": "fetched content contains directives aimed at the agent"
+        },
+        {
+          "kind": "content_scan",
+          "value": "hidden_characters",
+          "why": "a run of zero-width, bidi, or Unicode Tag characters; no legitimate page needs them (normalized before matching since 1.5.0)"
+        },
+        {
+          "kind": "content_scan",
+          "value": "instruction_channel_marker",
+          "why": "text that imitates the instruction channel: control tokens, fake system or role markers, directives in comments, fake prior agreement, false authority, audit suppression"
+        },
+        {
+          "kind": "content_scan",
+          "value": "persistence_request",
+          "why": "fetched content asks the agent to record something in memory, an instruction file, or a rules note"
+        }
       ],
       "action": "warn",
       "block_when": "any tool call justified by injected content, especially outward/destructive",
@@ -124,10 +335,18 @@
     {
       "id": "G9",
       "name": "idempotency",
+      "implemented_by": null,
+      "hook_events": [
+        "PostToolUse"
+      ],
       "tier": 3,
       "confirmation_schema": "schemas/external-send-confirmation.schema.json",
       "triggers": [
-        { "kind": "retry_after_side_effect", "value": true, "why": "re-running a call that may have already applied" }
+        {
+          "kind": "retry_after_side_effect",
+          "value": true,
+          "why": "re-running a call that may have already applied"
+        }
       ],
       "action": "confirm",
       "block_when": "blind re-run of a side-effecting call with no idempotency key and no state check",
@@ -137,16 +356,50 @@
     {
       "id": "G10",
       "name": "whole-tree-staging",
+      "implemented_by": "enforcement/policy-gate.py",
+      "hook_events": [
+        "PreToolUse"
+      ],
       "tier": 2,
       "confirmation_schema": null,
       "triggers": [
-        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s-[a-zA-Z]*A[a-zA-Z]*(?=\\s|$)", "why": "git add -A stages every file in a working tree shared by concurrent sessions" },
-        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s--all(?=\\s|$)", "why": "git add --all" },
-        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(-u|--update)(?=\\s|$)", "why": "git add -u stages every tracked change" },
-        { "kind": "regex", "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(\\.|:/|\\*)(?=\\s|$)", "why": "git add . stages the whole tree" },
-        { "kind": "regex", "pattern": "\\bgit\\s+commit\\b[^\\n;&|]*\\s(-[a-zA-Z]*a[a-zA-Z]*|--all)(?=\\s|$)", "why": "git commit -a stages every tracked change" },
-        { "kind": "index_state", "pattern": "git commit with no `--` pathspec (and no --pathspec-from-file / --dry-run)", "check": "git diff --cached --name-only in the commit's directory (git -C, else the cd chain, else the hook cwd)", "why": "a commit with no pathspec takes the whole index; deny when a staged path is not named anywhere in the command" },
-        { "kind": "index_state", "pattern": "git commit with a `--` pathspec (not --pathspec-from-file / --dry-run)", "check": "git diff --cached --name-only and git diff --name-only in the commit's directory: a named path present in both is partially staged", "why": "a pathspec commit takes each named file's whole working-tree copy; deny when a named path is partially staged and no earlier git add in the same command restages it" }
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s-[a-zA-Z]*A[a-zA-Z]*(?=\\s|$)",
+          "why": "git add -A stages every file in a working tree shared by concurrent sessions"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s--all(?=\\s|$)",
+          "why": "git add --all"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(-u|--update)(?=\\s|$)",
+          "why": "git add -u stages every tracked change"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+add\\b[^\\n;&|]*\\s(\\.|:/|\\*)(?=\\s|$)",
+          "why": "git add . stages the whole tree"
+        },
+        {
+          "kind": "regex",
+          "pattern": "\\bgit\\s+commit\\b[^\\n;&|]*\\s(-[a-zA-Z]*a[a-zA-Z]*|--all)(?=\\s|$)",
+          "why": "git commit -a stages every tracked change"
+        },
+        {
+          "kind": "index_state",
+          "pattern": "git commit with no `--` pathspec (and no --pathspec-from-file / --dry-run)",
+          "check": "git diff --cached --name-only in the commit's directory (git -C, else the cd chain, else the hook cwd)",
+          "why": "a commit with no pathspec takes the whole index; deny when a staged path is not named anywhere in the command"
+        },
+        {
+          "kind": "index_state",
+          "pattern": "git commit with a `--` pathspec (not --pathspec-from-file / --dry-run)",
+          "check": "git diff --cached --name-only and git diff --name-only in the commit's directory: a named path present in both is partially staged",
+          "why": "a pathspec commit takes each named file's whole working-tree copy; deny when a named path is partially staged and no earlier git add in the same command restages it"
+        }
       ],
       "action": "block",
       "notes": "Added 2026-09-03 after a concurrent /tico swept another session's finished files into commit e7430d2. Patterns are evaluated with quoted strings, heredoc bodies, and PowerShell here-strings stripped so commit messages mentioning the flags do not trip it. 1.4.2 (2026-10-08): the index_state trigger, after commit 1f4598d staged by explicit path and then a plain git commit swept 9 files another session had already staged. It is the only trigger that reads state: it runs git only for a commit with no pathspec and allows the call when git cannot be read. 1.4.3 (2026-10-09): the second index_state trigger, after a session staged only its own lines of a shared note and then ran a pathspec commit, which took the whole working-tree file and swept another session's uncommitted lines (137a149, undone before push). It reads git only for a pathspec commit and allows the call when git cannot be read. Scheduled whole-tree snapshots (daily_maintenance.py) run outside the hooks and are exempt by construction.",

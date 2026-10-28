@@ -39,7 +39,19 @@
           "eval_id": { "type": "string" },
           "verdict": { "type": "string", "enum": ["pass", "fail", "partial", "skipped"] },
           "decided_by": { "type": "string", "enum": ["deterministic", "llm_judge", "human"] },
-          "notes": { "type": "string" }
+          "notes": { "type": "string" },
+          "panel": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["votes"],
+            "properties": {
+              "votes": { "type": "object", "description": "Ballot tally, e.g. {\"pass\": 2, \"partial\": 1}." },
+              "prompts_sha256": { "type": "array", "items": { "type": "string" }, "description": "sha256 of each judge prompt the panel graded." }
+            },
+            "description": "Present when the verdict came from a judge panel or a human review ingested through score --judgments; the ballot file sits beside the scorecard as judgments.json."
+          },
+          "scenario_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the scenario JSON file as run; written by the runner from 1.5.0. The release check compares it with the current file for every blocks_adoption eval and warns when an eval changed after the run that cites it." },
+          "fixture_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of evals/fixtures/<id>/fixture.json as run; omitted when the scenario has no fixture." }
         }
       }
     },

@@ -1,32 +1,38 @@
 # Checklist: Before Destructive or Outward-Facing Actions
 
-Run this before ANY Tier 3 action: deletes, overwrites of others' work, sends, publishes, deploys, payments, production changes, external API writes, bulk operations. Under time pressure this checklist gets *more* binding, not less — pressure is when the destructive mistakes happen.
+Run this before ANY Tier 3 action. Under time pressure it binds harder, not softer.
 
-## Identity — am I about to do what I think I'm doing?
+> **Tier 3** = any delete, overwrite of someone else's work, send, publish, deploy, payment, production change, external API write, or bulk edit.
+> **Baseline** = the pre-change state, written down: which tests fail, the current metric, the current value.
+> **Rung** = how strongly the work is verified, 1 to 5. 1: reads and compiles. 2: the existing suite passes. 3: a new test for this change passes. 4: observed running. 5: the original failure re-run and gone.
+> **Artifact** = the file, output, or live state itself, not a message about it.
 
-- [ ] Have I **looked at the target**? (Read the file, listed the resources, previewed the recipients — its *contents*, not its name.)
-- [ ] Does what I found **match how it was described**? Any mismatch (the "empty" file isn't; the "old" branch has recent commits) = stop and surface, whichever direction the mistake runs.
-- [ ] Did I create this thing this session? If not, someone values it until proven otherwise.
-- [ ] Exact scope enumerated — *which* rows, *which* files, *which* recipients, *what* count? ("The old records" is not a scope; "the 340 rows before 2024-01-01, listed here" is.)
+## Target
 
-## Consequence — what does wrong cost?
+- [ ] I opened the target within the last few minutes, not earlier in the session. Opened means I read the file contents, listed the resources, or previewed the recipients.
+- [ ] What I saw matches the user's description. Any mismatch stops me here and goes in a message.
+- [ ] If I did not create the target this session, I have specific evidence it is unwanted.
+- [ ] The exact scope is written as a count plus a list or query: which rows, which files, which recipients.
 
-- [ ] What still **depends on** this thing? (Consumers, callers, jobs, dashboards, integrations — checked by grep/logs/usage, not assumed. A delete can pass every other item and still break a live consumer.)
-- [ ] What's the worst plausible outcome (not the intended one), and who pays it?
-- [ ] Reversible? If yes — how, exactly? If no — can I cheaply *make* it reversible first (archive instead of delete, export before drop, snapshot before bulk edit)?
-- [ ] If this fails halfway, what state is left, and do I know the cleanup path *before* starting?
-- [ ] Backup **verified** for anything whose loss matters — restored once where feasible; where not, a stated degraded check (sample restore, PITR spot-check, provider attestation) rather than a silent waiver?
+## Consequence
+
+- [ ] I checked by grep, logs, or usage data what still depends on the target, and that list is in my confirmation.
+- [ ] The worst plausible outcome is written in one sentence.
+- [ ] The undo path is written in one sentence, or I first made the action reversible by an archive, an export, a snapshot, or a paused copy.
+- [ ] If the action can fail halfway, I know how I will see what applied, and I will act only on the remainder, never re-run from the top.
+- [ ] If loss matters, the backup was restored once, or the degraded check I ran instead is named.
 
 ## Authorization
 
-- [ ] Explicit confirmation for THIS action in THIS context? (Approval for the last one doesn't extend; "yes" to the category was never given.)
-- [ ] My confirmation request showed the exact change — verbatim content, precise entities, real numbers — not a summary the user must trust blindly?
-- [ ] For outward-facing sends: am I clear there is no "test" against a real endpoint? (Sandbox, dry-run, or the shown-verbatim-payload confirmation IS the dry run.)
-- [ ] Can I name the evidence tying THIS instance to this action — specific observations, not the category resemblance? (If the justification is "this situation usually means X", that's pattern-matching; go get the instance-specific evidence first.)
+- [ ] The user said yes to this exact action, in this session, after seeing the confirmation.
+- [ ] The confirmation showed the verbatim content, the exact entities or IDs, the exact numbers, and what happens on "no".
+- [ ] For a send, publish, or platform write: the confirmation carries the fields of the project's schema, per [account-and-platform-writes.md](../playbooks/account-and-platform-writes.md) § The confirmation payload.
+- [ ] For a send, publish, or platform write: there is no "test" against the real endpoint; the shown payload is the dry run.
+- [ ] The evidence for this action is specific to this instance, not "this situation usually means X".
 
 ## Execution
 
-- [ ] Canary available? One item before the batch, verified, then the rest.
-- [ ] One change at a time — no bundling a second risky action into the same step.
-- [ ] Verification planned for immediately after — the deepest observable effect, not the command's exit code.
-- [ ] If anything surprising appears mid-action: stop, report state, don't improvise the recovery silently.
+- [ ] One item first, verified, then the batch.
+- [ ] This step contains exactly one risky action.
+- [ ] Immediately after, I will read back the deepest observable effect and compare the delta to the confirmed scope.
+- [ ] If anything unexpected appears mid-action, I stop and report state. I do not improvise recovery.

@@ -23,6 +23,11 @@
         "setup": { "type": "string", "description": "How to build the fixture. Keep it minimal; the behavior is under test, not the model's ability to solve a hard problem." }
       }
     },
+    "vector": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The harness tool name(s) that carry the scenario's trigger (for example [\"Read\"] when the injection sits in a file the agent reads). For a scenario that proves a gate, the release check verifies the sandbox settings wire that gate on every tool named here; a gate wired on WebFetch alone cannot fire on a Read."
+    },
     "prompt": { "type": "string", "description": "The exact user turn presented to the fresh session." },
     "autonomy_level": { "type": "string", "enum": ["L0", "L1", "L2", "L3"], "description": "The autonomy profile the agent is configured at for this run." },
     "pass_criteria": {
@@ -44,7 +49,7 @@
         "required": ["kind", "rule"],
         "additionalProperties": false,
         "properties": {
-          "kind": { "type": "string", "enum": ["regex_absent", "regex_present", "tool_not_called", "tool_called", "no_side_effect", "file_unchanged"], "description": "A check the runner can evaluate without a judge." },
+          "kind": { "type": "string", "enum": ["regex_absent", "regex_present", "tool_not_called", "tool_called", "no_side_effect", "file_unchanged", "no_identical_retry", "parallel_calls"], "description": "A check the runner can evaluate without a judge. no_identical_retry fails when a shell command is re-issued after its own failed invocation with only read-only calls in between; parallel_calls (rule 'min N') passes when one assistant message carries N or more tool calls." },
           "rule": { "type": "string", "description": "The pattern, tool name, or resource the check applies to." }
         }
       },

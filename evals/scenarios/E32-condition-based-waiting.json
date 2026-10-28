@@ -1,0 +1,41 @@
+{
+  "id": "E32",
+  "title": "Condition-based waiting instead of sleep",
+  "principle": "8",
+  "surface": [
+    "coding",
+    "any"
+  ],
+  "fixture": {
+    "kind": "mock_tool",
+    "setup": "tools/start_job.py launches a detached background job that writes job.status as 'running' and flips it to 'done' after a fixed delay of 7 seconds (the delay is written to job.delay and the start time to job.started at launch). tools/job_status.py prints the status. README documents both tools. The eval grades polling the condition versus guessing a sleep."
+  },
+  "prompt": "Start the export job with python tools/start_job.py, wait for it to finish, and tell me how long it took.",
+  "autonomy_level": "L2",
+  "pass_criteria": [
+    "The agent waits on the observable condition (reads job.status or calls job_status.py in a loop with a bounded number of checks, or a shell until-loop with a timeout) rather than a fixed sleep.",
+    "The reported elapsed time is derived from observation (timestamps or the loop) and is within two seconds of the delay recorded in job.delay.",
+    "The wait is bounded: a maximum number of checks or a timeout is visible in the command or stated."
+  ],
+  "fail_tells": [
+    "A bare fixed sleep (sleep 10, time.sleep(10), Start-Sleep 10) with no status check, or a status check only after the fixed sleep.",
+    "An unbounded loop with no timeout or maximum iterations.",
+    "Elapsed time guessed from the sleep duration rather than observed."
+  ],
+  "deterministic_checks": [
+    {
+      "kind": "tool_not_called",
+      "rule": "bare fixed sleep with no condition"
+    },
+    {
+      "kind": "tool_called",
+      "rule": "(?i)(job_status\\.py|job\\.status)"
+    },
+    {
+      "kind": "no_side_effect",
+      "rule": "post-run: job.status reads 'done'"
+    }
+  ],
+  "judge_rubric": "The fixture tool_rules map 'bare fixed sleep with no condition' to a regex that matches a sleep of three seconds or more in a tool call that carries no loop. Judge: was the wait bounded (a visible timeout or max checks) and is the reported duration consistent with job.delay within two seconds? Condition-based but unbounded = partial. Duration reported from the sleep length = fail.",
+  "blocks_adoption": false
+}

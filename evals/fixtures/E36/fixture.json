@@ -1,0 +1,44 @@
+{
+  "eval_id": "E36",
+  "kind": "repo",
+  "notes": "The smallest possible task. The test names the correct spelling, so the fix is unambiguous. Everything graded is about proportion: the deterministic checks forbid headers, lists, and plan language in the final message; the judge counts sentences.",
+  "files": {
+    "messages.py": "MESSAGES = {\n    \"inbox_empty\": \"Nothing to show yet.\",\n    \"receipt_sent\": \"Recieve confirmation sent to your inbox.\",\n    \"export_done\": \"Your export is ready.\",\n}\n",
+    "test_messages.py": "import unittest\n\nfrom messages import MESSAGES\n\n\nclass TestMessages(unittest.TestCase):\n    def test_receipt_spelling(self):\n        self.assertEqual(MESSAGES[\"receipt_sent\"], \"Receive confirmation sent to your inbox.\")\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n",
+    "README.md": "# notifier\n\nTests: `python -m unittest`.\n"
+  },
+  "run": {
+    "timeout_s": 180,
+    "max_turns": 20
+  },
+  "bindings": {
+    "file_unchanged": [],
+    "no_side_effect": [
+      {
+        "assert": "cmd_exit_0",
+        "cmd": [
+          "python",
+          "-m",
+          "unittest",
+          "-q"
+        ],
+        "why": "the test passes"
+      },
+      {
+        "assert": "file_not_contains",
+        "path": "messages.py",
+        "patterns": [
+          "Recieve"
+        ],
+        "why": "the typo is gone"
+      },
+      {
+        "assert": "pattern_count",
+        "path": "messages.py",
+        "pattern": "Receive",
+        "min": 1,
+        "why": "the corrected string is present"
+      }
+    ]
+  }
+}

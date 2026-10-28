@@ -1,26 +1,32 @@
 # Checklist: Session End
 
-The last minutes of a session determine how much of it survives. Run this before wrapping up any substantial session.
+Run this before wrapping up any substantial session. The final message is covered by the Report section of [before-claiming-done.md](before-claiming-done.md); run that too.
 
-## The work itself
+> **Tier 3** = any delete, overwrite of someone else's work, send, publish, deploy, payment, production change, external API write, or bulk edit.
+> **Baseline** = the pre-change state, written down: which tests fail, the current metric, the current value.
+> **Rung** = how strongly the work is verified, 1 to 5. 1: reads and compiles. 2: the existing suite passes. 3: a new test for this change passes. 4: observed running. 5: the original failure re-run and gone.
+> **Artifact** = the file, output, or live state itself, not a message about it.
 
-- [ ] Current task actually at a stopping point — done-and-verified, or checkpointed with state written down? (Not silently abandoned at 80%.)
-- [ ] Task list reconciled with reality: done items marked done *because verified*, discovered items added, stale items pruned?
-- [ ] Environment clean: no orphan processes/servers, no scratch files in the project, nothing half-applied without a note?
+## The work
 
-## Capture (the two-minute sweep)
+- [ ] The current task is done and verified, or checkpointed with its state written down and a tracker row open.
+- [ ] The task list matches reality: done items verified, discovered items added, stale items removed.
+- [ ] If the task has a task-state file, it is updated to the verified state, and its one in-progress item is the true one.
+- [ ] Uncommitted changes are committed by explicit path, or listed with a note saying why not.
+- [ ] No orphan process, server, or scratch file remains in the project.
 
-- [ ] **Decisions made this session** — with their reasons — written to the durable layer (project notes/docs/memory)?
-- [ ] **Corrections received** — anything the user told me about how to work — persisted so it never has to be repeated? (The highest-value capture there is.)
-- [ ] **Hard-won facts** — quirks, gotchas, non-obvious mappings that cost real time to discover — saved with the why and the how-to-apply?
-- [ ] **State for next session** — where things stand, what's next, open questions — written somewhere a cold start will find it?
-- [ ] Updates went into **existing** notes where they exist (no contradictory twins created); anything now known false, corrected or deleted?
-- [ ] Project's own logging conventions honored (daily note, changelog, UPDATES section — whatever the project prescribes)?
-- [ ] Shared append-only records (the daily log, a ledger) written through the project's designated append helper with the date from its date authority — never a whole-file write, never a hand-derived date or weekday? (The project overlay in SKILL.md names the helper.)
+## Capture
+
+- [ ] Each decision made this session is written to the durable layer with its reason.
+- [ ] Each correction the user gave me is written where the next session reads first.
+- [ ] Each non-obvious fact that cost real time is saved with the why and the how-to-apply.
+- [ ] Where things stand and what is next is written where a cold start will find it.
+- [ ] If the work continues in another session or another agent: the handoff document is written per [concurrency-and-handoffs.md](../references/concurrency-and-handoffs.md) § Handing off, with artifacts referenced by path and secrets redacted. Template: [handoff-document.md](../examples/handoff-document.md).
+- [ ] Updates went into existing notes; no twin note was created; nothing now known false is left uncorrected.
+- [ ] Append-only records were written through the project's designated append helper, with the date from its date authority where one exists, never by whole-file write or hand-typed date.
+- [ ] No secret or personal record was pasted into a note, log, or memory this session.
 
 ## The final message
 
-- [ ] Leads with the outcome of the session's main work?
-- [ ] Self-contained — readable without the conversation, since the conversation may be summarized away?
-- [ ] Loose ends explicitly listed (deferred items, flagged follow-ups, things awaiting the user) rather than implied?
-- [ ] Offers next steps without asking permission for work already requested?
+- [ ] It is self-contained: readable without the conversation.
+- [ ] Loose ends are listed explicitly: deferred items, flagged follow-ups, things awaiting the user.
